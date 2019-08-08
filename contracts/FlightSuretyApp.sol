@@ -34,6 +34,11 @@ contract FlightSuretyApp {
     }
     mapping(bytes32 => Flight) private flights;
 
+    // Data Contract
+    FlightSuretyData flightSuretyData; //State variable referencing the data contract deployed. It´s initiated in the constructor
+
+    //Control flag to pause contract from running state changing operations
+    bool private operational = true;
  
     /********************************************************************************************/
     /*                                       FUNCTION MODIFIERS                                 */
@@ -72,11 +77,14 @@ contract FlightSuretyApp {
     *
     */
     constructor
-                                (
-                                ) 
-                                public 
+                (
+                    address dataContract //Address of data contract
+                ) 
+                public 
     {
         contractOwner = msg.sender;
+        flightSuretyData = FlightSuretyData(dataContract); //Reference to data contract
+        
     }
 
     /********************************************************************************************/
@@ -333,5 +341,13 @@ contract FlightSuretyApp {
     }
 
 // endregion
+}
 
-}   
+contract FlightSuretyData { // modifiers are implemented in the data contract
+    function registerAirline
+                            (   
+                            )
+                            external
+                            pure;
+
+}
