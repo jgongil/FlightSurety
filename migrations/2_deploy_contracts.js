@@ -4,8 +4,8 @@ const fs = require('fs');
 
 module.exports = function(deployer) {
 
-    let firstAirline = '0x627306090abab3a6e1400e9345bc60c78a8bef57';
-    deployer.deploy(FlightSuretyData)
+    let firstAirline = '0xf17f52151EbEF6C7334FAD080c5704D77216b732'; //accounts[1]
+    deployer.deploy(FlightSuretyData, firstAirline) // First airline is registered when contract is deployed
     .then(() => {
         return deployer.deploy(FlightSuretyApp, FlightSuretyData.address)
                 .then(() => {

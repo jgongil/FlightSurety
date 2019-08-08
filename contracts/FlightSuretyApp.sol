@@ -98,6 +98,26 @@ contract FlightSuretyApp {
         return true;  // Modify to call data contract's status
     }
 
+    function isAirlineRegistered(
+                        address airline
+                        )
+                        external
+                        view
+                        requireContractOwner
+                        returns(bool)     
+    {
+        return flightSuretyData.isAirlineRegistered(airline);
+    }
+
+    function isAirlineFunded(
+                            address airline
+                            )
+                            external
+                            view
+                            returns(bool)
+    {
+        return flightSuretyData.isAirlineFunded(airline);
+    }
     /********************************************************************************************/
     /*                                     SMART CONTRACT FUNCTIONS                             */
     /********************************************************************************************/
@@ -118,6 +138,14 @@ contract FlightSuretyApp {
         return (success, 0);
     }
 
+    function fundAirline
+                            (   
+                            )
+                            external
+                            payable
+    {
+        flightSuretyData.fundAirline(msg.sender);
+    }
 
    /**
     * @dev Register a future flight for insuring.
@@ -349,5 +377,23 @@ contract FlightSuretyData { // modifiers are implemented in the data contract
                                 address wallet
                             )
                             external;
+    function fundAirline
+                            (   
+                                address airline
+                            )
+                            public
+                            payable;
 
+    function isAirlineRegistered(
+                                    address airline
+                                )
+                                external
+                                view
+                                returns(bool);
+    function isAirlineFunded(
+                                address airline
+                            )
+                            external
+                            view
+                            returns(bool);
 }

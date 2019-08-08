@@ -23,7 +23,7 @@ contract('Flight Surety Tests', async (accounts) => {
   /****************************************************************************************/
   /* Operations and Settings                                                              */
   /****************************************************************************************/
-
+ 
   it(`(multiparty) has correct initial isOperational() value`, async function () {
 
     // Get operating status
@@ -81,6 +81,21 @@ contract('Flight Surety Tests', async (accounts) => {
 
   });
 
+  it('(airline) first airline is registered when contract is deployed', async () => {
+    
+    let result = await config.flightSuretyApp.isAirlineRegistered.call(config.firstAirline);
+    assert.equal(result, true, "First airline not registered when contract was deployed");
+
+  });
+
+  it('(airline) first airline is funded', async () => {
+    
+    await config.flightSuretyApp.fundAirline({from: config.firstAirline, value: web3.utils.toWei("11", "ether")});
+    let result = await config.flightSuretyApp.isAirlineFunded.call(config.firstAirline);
+    assert.equal(result, true, "First airline not funded when contract was deployed");
+
+  });
+
   it('(airline) cannot register an Airline using registerAirline() if it is not funded', async () => {
     
     // ARRANGE
@@ -88,12 +103,12 @@ contract('Flight Surety Tests', async (accounts) => {
 
     // ACT
     try {
-        await config.flightSuretyApp.registerAirline(newAirline, {from: config.firstAirline});
+        await config.flightSuretyApp.isAirlineRegistered(newAirline, {from: config.firstAirline});
     }
     catch(e) {
 
     }
-    let result = await config.flightSuretyData.isAirline.call(newAirline); 
+    let result = await config.flightSuretyData.isAirlineRegistered.call(newAirline); 
 
     // ASSERT
     assert.equal(result, false, "Airline should not be able to register another airline if it hasn't provided funding");

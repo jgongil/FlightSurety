@@ -10,6 +10,7 @@ contract FlightSuretyData {
     /********************************************************************************************/
 
     address private contractOwner;                                      // Account used to deploy contract
+    address private firstAirline;                                       // First airline is registered when contract is deployed
     bool private operational = true;                                    // Blocks all state changes throughout the contract if false
 
     // Airline roles - admin yes/no
@@ -22,6 +23,10 @@ contract FlightSuretyData {
     //Restrict Data Contract Callers
      mapping(address => uint256) private authorizedContracts;
 
+    //Airline funds
+    mapping(address => uint256) internal airlineFunds;
+
+    uint256 public constant AIRLINE_MIN_FUND = 10 ether;
     /********************************************************************************************/
     /*                                       EVENT DEFINITIONS                                  */
     /********************************************************************************************/
@@ -33,15 +38,16 @@ contract FlightSuretyData {
     */
     constructor
                                 (
+                                    address firstAirline
                                 ) 
                                 public 
     {
         contractOwner = msg.sender;
         // First airline gets registered as admin
-        airlineProfiles[msg.sender] = AirlineProfile({
+        airlineProfiles[firstAirline] = AirlineProfile({
                                                     isRegistered: true,
-                                                    isFunded: true
-                                                     });
+                                                    isFunded: false
+                                                     });                                                
     }
 
     /********************************************************************************************/
@@ -130,10 +136,30 @@ contract FlightSuretyData {
         delete authorizedContracts[contractAddress];
     }
 
+    function isAirlineRegistered(
+                                address airline
+                                )
+                                external
+                                view
+                                returns(bool)
+    {
+        return airlineProfiles[airline].isRegistered;
+    }
+
+    function isAirlineFunded(
+                            address airline
+                            )
+                            external
+                            view
+                            returns(bool)
+    {
+        return airlineProfiles[airline].isFunded;
+    }
     /********************************************************************************************/
     /*                                     SMART CONTRACT FUNCTIONS                             */
     /********************************************************************************************/
 
+// AIRLINES MANAGEMENT starts
    /**
     * @dev Add an airline to the registration queue
     *      Can only be called from FlightSuretyApp contract
@@ -154,6 +180,32 @@ contract FlightSuretyData {
                                                 });
     }
 
+   /**
+    * @dev Initial funding for the insurance. Unless there are too many delayed flights
+    *      resulting in insurance payouts, the contract should be self-sustaining
+    *
+    */   
+    function fundAirline
+                            (   
+                                address airline
+                            )
+                            public
+                            payable
+                            requireIsOperational
+                            requireIsCallerAuthorized
+    {
+        require(airlineProfiles[airline].isRegistered);
+
+        //uint256 currentBalance = airlineFunds[airline];
+        uint256 input = msg.value; // funds sent in wei
+        airlineFunds[airline].add(input);
+
+        // mark airline as funded if it reaches the minimun funds        
+        if ((airlineFunds[airline] > AIRLINE_MIN_FUND) && !airlineProfiles[airline].isFunded){
+            airlineProfiles[airline].isFunded = true;
+        }
+    }
+// AIRLINES MANAGEMENT ends
 
    /**
     * @dev Buy insurance for a flight
