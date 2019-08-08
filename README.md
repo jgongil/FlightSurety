@@ -13,6 +13,10 @@ To install, download or clone the repo, then:
 
 ## Develop Client
 
+To run ganache-cli:
+
+`ganache-cli -m "candy maple cake sugar pudding cream honey rich smooth crumble sweet treat" -l 9999999`
+
 To run truffle tests:
 
 `truffle test ./test/flightSurety.js`

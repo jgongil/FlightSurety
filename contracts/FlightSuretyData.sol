@@ -19,6 +19,9 @@ contract FlightSuretyData {
     }
     mapping(address => AirlineProfile) airlineProfiles;  // Mapping for storing user profiles
 
+    //Restrict Data Contract Callers
+     mapping(address => uint256) private authorizedContracts;
+
     /********************************************************************************************/
     /*                                       EVENT DEFINITIONS                                  */
     /********************************************************************************************/
@@ -68,6 +71,12 @@ contract FlightSuretyData {
         _;
     }
 
+    modifier requireIsCallerAuthorized()
+    {
+        require(authorizedContracts[msg.sender] == 1, "Caller is not contract owner");
+        _;
+    }
+
     /********************************************************************************************/
     /*                                       UTILITY FUNCTIONS                                  */
     /********************************************************************************************/
@@ -99,6 +108,26 @@ contract FlightSuretyData {
                             requireContractOwner 
     {
         operational = mode;
+    }
+
+    function authorizeContract
+                            (
+                                address contractAddress
+                            )
+                            external
+                            requireContractOwner
+    {
+        authorizedContracts[contractAddress] = 1;
+    }
+
+    function deauthorizeContract
+                            (
+                                address contractAddress
+                            )
+                            external
+                            requireContractOwner
+    {
+        delete authorizedContracts[contractAddress];
     }
 
     /********************************************************************************************/
