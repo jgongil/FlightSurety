@@ -115,7 +115,7 @@ contract FlightSuretyData {
                                 address contractAddress
                             )
                             external
-                            requireContractOwner
+                            //requireContractOwner
     {
         authorizedContracts[contractAddress] = 1;
     }

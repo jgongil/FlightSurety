@@ -7,7 +7,17 @@ contract('Flight Surety Tests', async (accounts) => {
   var config;
   before('setup contract', async () => {
     config = await Test.Config(accounts);
+
+    // Grant access to app contract to call data contract
+    console.log('\nData Contract used for testing', config.flightSuretyData.address);
+    console.log('App Contract used for testing', config.flightSuretyApp.address);
     await config.flightSuretyData.authorizeContract(config.flightSuretyApp.address);
+
+
+    // register first airline (owner)
+    console.log('owner - accounts[0]:', await config.owner); 
+    console.log('firstAirline - accounts[1]:', await config.firstAirline);    
+
   });
 
   /****************************************************************************************/

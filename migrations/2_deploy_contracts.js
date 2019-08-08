@@ -9,8 +9,8 @@ module.exports = function(deployer) {
     .then(() => {
         return deployer.deploy(FlightSuretyApp, FlightSuretyData.address)
                 .then(() => {
-                    console.log('Data Contract', FlightSuretyData.address);
-                    console.log('App Contract', FlightSuretyApp.address);
+                    console.log('Data Contract after migration', FlightSuretyData.address);
+                    console.log('App Contract after migration', FlightSuretyApp.address);
                     let config = {
                         localhost: {
                             url: 'http://localhost:8545',

@@ -15,6 +15,8 @@ contract FlightSuretyApp {
     /********************************************************************************************/
     /*                                       DATA VARIABLES                                     */
     /********************************************************************************************/
+    //Control flag to pause contract from running state changing operations
+    bool private operational = true;
 
     // Flight status codees
     uint8 private constant STATUS_CODE_UNKNOWN = 0;
@@ -36,9 +38,6 @@ contract FlightSuretyApp {
 
     // Data Contract
     FlightSuretyData flightSuretyData; //State variable referencing the data contract deployed. It´s initiated in the constructor
-
-    //Control flag to pause contract from running state changing operations
-    bool private operational = true;
  
     /********************************************************************************************/
     /*                                       FUNCTION MODIFIERS                                 */
