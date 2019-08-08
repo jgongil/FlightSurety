@@ -15,7 +15,7 @@ contract FlightSuretyData {
     // Airline roles - admin yes/no
     struct AirlineProfile {
         bool isRegistered;
-        bool isAdmin;
+        bool isFunded;
     }
     mapping(address => AirlineProfile) airlineProfiles;  // Mapping for storing user profiles
 
@@ -34,6 +34,11 @@ contract FlightSuretyData {
                                 public 
     {
         contractOwner = msg.sender;
+        // First airline gets registered as admin
+        airlineProfiles[msg.sender] = AirlineProfile({
+                                                    isRegistered: true,
+                                                    isFunded: true
+                                                     });
     }
 
     /********************************************************************************************/
@@ -106,11 +111,18 @@ contract FlightSuretyData {
     *
     */   
     function registerAirline
-                            (   
+                            (
+                                address wallet
                             )
                             external
-                            pure
+                            requireContractOwner
     {
+        require(!airlineProfiles[wallet].isRegistered, "Airline is already registered.");
+
+        airlineProfiles[wallet] = AirlineProfile({
+                                                    isRegistered: true,
+                                                    isFunded: false
+                                                });
     }
 
 

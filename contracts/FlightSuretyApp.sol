@@ -110,11 +110,12 @@ contract FlightSuretyApp {
     */   
     function registerAirline
                             (   
+                                address wallet
                             )
                             external
-                            pure
                             returns(bool success, uint256 votes)
     {
+        flightSuretyData.registerAirline(wallet);
         return (success, 0);
     }
 
@@ -345,9 +346,9 @@ contract FlightSuretyApp {
 
 contract FlightSuretyData { // modifiers are implemented in the data contract
     function registerAirline
-                            (   
+                            (
+                                address wallet
                             )
-                            external
-                            pure;
+                            external;
 
 }
