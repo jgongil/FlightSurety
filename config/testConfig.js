@@ -21,7 +21,7 @@ var Config = async function(accounts) {
 
 
     let owner = accounts[0];
-    let firstAirline = accounts[1];
+    let firstAirline = accounts[2];
 
 /*     this will deploy new contracts every time we run a test
     let flightSuretyData = await FlightSuretyData.new();

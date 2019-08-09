@@ -39,6 +39,9 @@ contract FlightSuretyApp {
     // Data Contract
     FlightSuretyData flightSuretyData; //State variable referencing the data contract deployed. It´s initiated in the constructor
 
+    mapping(address => address[]) private airlineVotes;
+    address[] airlineProRegister = new address[](0);
+
     /********************************************************************************************/
     /*                                       FUNCTION MODIFIERS                                 */
     /********************************************************************************************/
@@ -139,13 +142,64 @@ contract FlightSuretyApp {
     */   
     function registerAirline
                             (   
-                                address wallet
+                                address airlineToRegister
                             )
                             external
                             returns(bool success, uint256 votes)
     {
-        flightSuretyData.registerAirline(wallet);
+        require(flightSuretyData.isAirlineRegistered(airlineToRegister), "A non-registered airline cannot register");
+
+        // Registered airlines counts
+        uint256 airlinesCount = flightSuretyData.countAirlinesRegistered(); // Numer of registered airlines
+        uint256 airlineMajority = airlinesCount.div(2); // Number of airlines which conform the majority
+
+        // When less than 5 airlines are registered, any registered airline can perform registration
+        if (airlinesCount < 5){
+                    flightSuretyData.registerAirline(airlineToRegister);
+        }
+
+        // Multi party consensus handling - 50% of the reg airlines must have voted for airlineToRegiter
+        bool isDuplicate = false;
+        for (uint c=0; c < airlineVotes[airlineToRegister].length; c++) {
+
+            if (airlineVotes[airlineToRegister][c] == msg.sender) {
+                isDuplicate = true;
+                break;
+            }
+        }
+
+        require(!isDuplicate, "Caller has already called this function.");
+
+        airlineVotes[airlineToRegister].push(msg.sender); // New airline pro registering airlineToRegister
+
+        // If > 50% airlines voted for airlineToRegister, the regitration will succeed.
+        if (airlineVotes[airlineToRegister].length >= airlineMajority) { 
+            flightSuretyData.registerAirline(airlineToRegister);
+            airlineVotes[airlineToRegister] = new address[](0);
+        }
+
         return (success, 0);
+
+        /* // Multi party consensus handling - 50% is required to register an airline
+        bool isDuplicate = false;
+        for (uint c=0; c < airlineProRegister.length; c++) {
+
+            if (airlineProRegister[c] == msg.sender) {
+                isDuplicate = true;
+                break;
+            }
+        }
+
+        require(!isDuplicate, "Caller has already called this function.");
+
+        airlineProRegister.push(msg.sender); // New airline pro register
+
+        if (airlineProRegister.length >= airlineMajority) { // If > 50% airlines call this function, the resitration will succeed.
+            flightSuretyData.registerAirline(airlineToRegister);
+            airlineProRegister = new address[](0);
+        }
+
+        return (success, 0); */
     }
 
     function fundAirline
@@ -391,6 +445,11 @@ contract FlightSuretyData { // modifiers are implemented in the data contract
                                 address wallet
                             )
                             external;
+    function countAirlinesRegistered(
+                                    )
+                                    external
+                                    view
+                                    returns(uint256);
     function fundAirline
                             (   
                                 address airline

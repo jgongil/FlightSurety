@@ -16,7 +16,7 @@ contract('Flight Surety Tests', async (accounts) => {
 
     // register first airline (owner)
     console.log('owner - accounts[0]:', await config.owner); 
-    console.log('firstAirline - accounts[1]:', await config.firstAirline);    
+    console.log('firstAirline - accounts[2]:', await config.firstAirline);    
 
   });
 
@@ -109,7 +109,7 @@ contract('Flight Surety Tests', async (accounts) => {
   it('(airline) cannot register an Airline using registerAirline() if it is not funded', async () => {
     
     // ARRANGE
-    let newAirline = accounts[2];
+    let newAirline = accounts[3];
 
     // ACT
     try {
