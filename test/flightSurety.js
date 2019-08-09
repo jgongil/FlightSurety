@@ -90,7 +90,17 @@ contract('Flight Surety Tests', async (accounts) => {
 
   it('(airline) first airline is funded', async () => {
     
-    await config.flightSuretyApp.fundAirline({from: config.firstAirline, value: web3.utils.toWei("11", "ether")});
+    await config.flightSuretyApp.fundAirline({from: config.firstAirline, value: web3.utils.toWei('10', 'ether')});
+    
+    let balanceInContract = await config.flightSuretyApp.getAirlineBalance.call(config.firstAirline);
+    console.log("First Airline Balance in the contract after funding (ether): ", web3.utils.fromWei(balanceInContract, "ether"));//BigNumber(balance).toNumber());
+    /* 
+    let accountBalance = await web3.eth.getBalance(config.firstAirline);
+    console.log("First Airline account balance: ",  web3.utils.fromWei(accountBalance, "ether"));
+ */
+    let contractBalance = await web3.eth.getBalance(config.flightSuretyData.address);
+    console.log("Data Contract balance after funding: ",  web3.utils.fromWei(contractBalance, "ether"));
+
     let result = await config.flightSuretyApp.isAirlineFunded.call(config.firstAirline);
     assert.equal(result, true, "First airline not funded when contract was deployed");
 

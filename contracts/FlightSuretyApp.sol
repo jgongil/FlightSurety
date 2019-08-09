@@ -18,6 +18,8 @@ contract FlightSuretyApp {
     //Control flag to pause contract from running state changing operations
     bool private operational = true;
 
+    address private contractOwner;          // Account used to deploy contract
+
     // Flight status codees
     uint8 private constant STATUS_CODE_UNKNOWN = 0;
     uint8 private constant STATUS_CODE_ON_TIME = 10;
@@ -25,8 +27,6 @@ contract FlightSuretyApp {
     uint8 private constant STATUS_CODE_LATE_WEATHER = 30;
     uint8 private constant STATUS_CODE_LATE_TECHNICAL = 40;
     uint8 private constant STATUS_CODE_LATE_OTHER = 50;
-
-    address private contractOwner;          // Account used to deploy contract
 
     struct Flight {
         bool isRegistered;
@@ -38,7 +38,7 @@ contract FlightSuretyApp {
 
     // Data Contract
     FlightSuretyData flightSuretyData; //State variable referencing the data contract deployed. It´s initiated in the constructor
- 
+
     /********************************************************************************************/
     /*                                       FUNCTION MODIFIERS                                 */
     /********************************************************************************************/
@@ -118,6 +118,16 @@ contract FlightSuretyApp {
     {
         return flightSuretyData.isAirlineFunded(airline);
     }
+
+    function getAirlineBalance  (
+                                address airline
+                                )
+                                external
+                                view
+                                returns(uint256)
+    {
+        return flightSuretyData.getAirlineBalance(airline);
+    }
     /********************************************************************************************/
     /*                                     SMART CONTRACT FUNCTIONS                             */
     /********************************************************************************************/
@@ -144,7 +154,11 @@ contract FlightSuretyApp {
                             external
                             payable
     {
-        flightSuretyData.fundAirline(msg.sender);
+/*         uint256 amountToReturn = msg.value - JOIN_FEE;
+        address(dataContractAddress).transfer(JOIN_FEE);
+        msg.sender.transfer(amountToReturn); */
+
+        flightSuretyData.fundAirline.value(msg.value)(msg.sender);
     }
 
    /**
@@ -396,4 +410,10 @@ contract FlightSuretyData { // modifiers are implemented in the data contract
                             external
                             view
                             returns(bool);
+    function getAirlineBalance  (
+                            address airline
+                            )
+                            external
+                            view
+                            returns(uint256);
 }

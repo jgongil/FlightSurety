@@ -19,14 +19,18 @@ contract FlightSuretyData {
         bool isFunded;
     }
     mapping(address => AirlineProfile) airlineProfiles;  // Mapping for storing user profiles
+    address[] registeredAirlines = new address[](0);
 
     //Restrict Data Contract Callers
      mapping(address => uint256) private authorizedContracts;
 
-    //Airline funds
+    //Airline funded balance
     mapping(address => uint256) internal airlineFunds;
 
-    uint256 public constant AIRLINE_MIN_FUND = 10 ether;
+
+    // Fees
+    uint256 public constant JOIN_FEE = 10 ether;
+
     /********************************************************************************************/
     /*                                       EVENT DEFINITIONS                                  */
     /********************************************************************************************/
@@ -38,16 +42,19 @@ contract FlightSuretyData {
     */
     constructor
                                 (
-                                    address firstAirline
+                                    address newFirstAirline
                                 ) 
                                 public 
     {
         contractOwner = msg.sender;
+        firstAirline = newFirstAirline;
+        // adds airline address to the list of addresses
+        registeredAirlines.push(firstAirline);  
         // First airline gets registered as admin
         airlineProfiles[firstAirline] = AirlineProfile({
                                                     isRegistered: true,
                                                     isFunded: false
-                                                     });                                                
+                                                     });                                              
     }
 
     /********************************************************************************************/
@@ -146,6 +153,15 @@ contract FlightSuretyData {
         return airlineProfiles[airline].isRegistered;
     }
 
+    function countAirlinesRegistered(
+                                    )
+                                    external
+                                    view
+                                    returns(uint256)
+    {
+        return registeredAirlines.length;
+    }
+
     function isAirlineFunded(
                             address airline
                             )
@@ -154,6 +170,17 @@ contract FlightSuretyData {
                             returns(bool)
     {
         return airlineProfiles[airline].isFunded;
+    }
+
+    function getAirlineBalance  (
+                                address airline
+                                )
+                                external
+                                view
+                                requireIsCallerAuthorized
+                                returns(uint256)
+    {
+        return airlineFunds[airline];
     }
     /********************************************************************************************/
     /*                                     SMART CONTRACT FUNCTIONS                             */
@@ -174,6 +201,9 @@ contract FlightSuretyData {
     {
         require(!airlineProfiles[wallet].isRegistered, "Airline is already registered.");
 
+        // adds airline address to the list of registered airline addresses
+        registeredAirlines.push(firstAirline);  
+        // populates the relevant profile
         airlineProfiles[wallet] = AirlineProfile({
                                                     isRegistered: true,
                                                     isFunded: false
@@ -194,14 +224,12 @@ contract FlightSuretyData {
                             requireIsOperational
                             requireIsCallerAuthorized
     {
-        require(airlineProfiles[airline].isRegistered);
+        require(airlineProfiles[airline].isRegistered, "Airline is not registered so cannot be funded"); // The airline must be registered already as first step
 
-        //uint256 currentBalance = airlineFunds[airline];
-        uint256 input = msg.value; // funds sent in wei
-        airlineFunds[airline].add(input);
+        airlineFunds[airline] = airlineFunds[airline].add(msg.value); // Keep record of contributions of every company
 
-        // mark airline as funded if it reaches the minimun funds        
-        if ((airlineFunds[airline] > AIRLINE_MIN_FUND) && !airlineProfiles[airline].isFunded){
+        // mark airline as funded if it is not, and the value reaches the JOIN_FEE        
+        if ((airlineFunds[airline] >= JOIN_FEE) && !airlineProfiles[airline].isFunded){
             airlineProfiles[airline].isFunded = true;
         }
     }
@@ -274,11 +302,9 @@ contract FlightSuretyData {
     * @dev Fallback function for funding smart contract.
     *
     */
-    function() 
-                            external 
-                            payable 
+    function() external payable
     {
-        fund();
+        fundAirline(msg.sender);
     }
 
 
