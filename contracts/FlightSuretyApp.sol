@@ -106,7 +106,7 @@ contract FlightSuretyApp {
                         )
                         external
                         view
-                        requireContractOwner
+                        //requireContractOwner
                         returns(bool)     
     {
         return flightSuretyData.isAirlineRegistered(airline);
@@ -131,6 +131,16 @@ contract FlightSuretyApp {
     {
         return flightSuretyData.getAirlineBalance(airline);
     }
+
+    function getAirlineVotes  (
+                                address airline
+                                )
+                                external
+                                view
+                                returns(uint256)
+    {
+        return airlineVotes[airline].length;
+    }
     /********************************************************************************************/
     /*                                     SMART CONTRACT FUNCTIONS                             */
     /********************************************************************************************/
@@ -147,59 +157,41 @@ contract FlightSuretyApp {
                             external
                             returns(bool success, uint256 votes)
     {
-        require(flightSuretyData.isAirlineRegistered(airlineToRegister), "A non-registered airline cannot register");
+        //require(this.isAirlineRegistered(msg.sender), "A non-registered airline cannot register");
+        require(this.isAirlineFunded(msg.sender), "A non-funded airline cannot register");
 
         // Registered airlines counts
         uint256 airlinesCount = flightSuretyData.countAirlinesRegistered(); // Numer of registered airlines
         uint256 airlineMajority = airlinesCount.div(2); // Number of airlines which conform the majority
 
-        // When less than 5 airlines are registered, any registered airline can perform registration
-        if (airlinesCount < 5){
+        // 1) When less than 5 airlines are registered, any registered airline can perform registration
+        if (airlinesCount < 4){
                     flightSuretyData.registerAirline(airlineToRegister);
-        }
+        } 
+        // 2) Multi party consensus handling - 50% of the reg airlines must have voted for airlineToRegiter
+        else {
 
-        // Multi party consensus handling - 50% of the reg airlines must have voted for airlineToRegiter
-        bool isDuplicate = false;
-        for (uint c=0; c < airlineVotes[airlineToRegister].length; c++) {
+            bool isDuplicate = false;
+            for (uint c=0; c < airlineVotes[airlineToRegister].length; c++) {
 
-            if (airlineVotes[airlineToRegister][c] == msg.sender) {
-                isDuplicate = true;
-                break;
+                if (airlineVotes[airlineToRegister][c] == msg.sender) {
+                    isDuplicate = true;
+                    break;
+                }
             }
+
+            require(!isDuplicate, "Caller has already called this function. (Cannot vote twice)");
+
+            airlineVotes[airlineToRegister].push(msg.sender); // VOTE: New airline pro registering airlineToRegister
+
+            // If > 50% airlines voted for airlineToRegister, the regitration will succeed.
+            if (airlineVotes[airlineToRegister].length >= airlineMajority) {
+                flightSuretyData.registerAirline(airlineToRegister);
+                //airlineVotes[airlineToRegister] = new address[](0);
+            } 
+
         }
-
-        require(!isDuplicate, "Caller has already called this function.");
-
-        airlineVotes[airlineToRegister].push(msg.sender); // New airline pro registering airlineToRegister
-
-        // If > 50% airlines voted for airlineToRegister, the regitration will succeed.
-        if (airlineVotes[airlineToRegister].length >= airlineMajority) { 
-            flightSuretyData.registerAirline(airlineToRegister);
-            airlineVotes[airlineToRegister] = new address[](0);
-        }
-
         return (success, 0);
-
-        /* // Multi party consensus handling - 50% is required to register an airline
-        bool isDuplicate = false;
-        for (uint c=0; c < airlineProRegister.length; c++) {
-
-            if (airlineProRegister[c] == msg.sender) {
-                isDuplicate = true;
-                break;
-            }
-        }
-
-        require(!isDuplicate, "Caller has already called this function.");
-
-        airlineProRegister.push(msg.sender); // New airline pro register
-
-        if (airlineProRegister.length >= airlineMajority) { // If > 50% airlines call this function, the resitration will succeed.
-            flightSuretyData.registerAirline(airlineToRegister);
-            airlineProRegister = new address[](0);
-        }
-
-        return (success, 0); */
     }
 
     function fundAirline

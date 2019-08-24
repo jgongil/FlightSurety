@@ -197,12 +197,11 @@ contract FlightSuretyData {
                                 address wallet
                             )
                             external
-                            requireContractOwner
     {
         require(!airlineProfiles[wallet].isRegistered, "Airline is already registered.");
 
         // adds airline address to the list of registered airline addresses
-        registeredAirlines.push(firstAirline);  
+        registeredAirlines.push(wallet);  
         // populates the relevant profile
         airlineProfiles[wallet] = AirlineProfile({
                                                     isRegistered: true,
