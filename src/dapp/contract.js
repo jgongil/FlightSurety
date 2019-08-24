@@ -53,4 +53,29 @@ export default class Contract {
                 callback(error, payload);
             });
     }
+
+    registerFlight(flightCode, callback){
+        let self = this;
+        let payload = {
+            flightCode: '0x007',
+            statusCode: 0,
+            updatedTimestamp: Math.floor(Date.now() / 1000),
+            airline: self.airlines[3]
+        }
+        
+        self.flightSuretyApp.methods
+            .registerFlight(payload.flightCode,payload.statusCode,payload.updatedTimestamp,payload.airline)
+            .send({from: self.owner}, (error, result) => {
+                callback(error);
+            });
+    }
+
+    buy(flight,callback){
+        let self = this;
+        self.flightSuretyApp.methods
+            .buy(flight)
+            .send({from: self.owner}, (error, result) => {
+                callback(error);
+            });
+    }
 }

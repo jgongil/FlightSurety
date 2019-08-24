@@ -234,6 +234,7 @@ contract FlightSuretyApp {
                                     address airline
                                 )
                                 external
+                                requireIsOperational
     {
         flightSuretyData.registerFlight(flightCode,statusCode,updatedTimestamp,airline);
     }
@@ -251,11 +252,12 @@ contract FlightSuretyApp {
                                 )
                                 internal
                                 pure
+                                requireIsOperational
     {
     }
 
 
-    // Generate a request for oracles to fetch flight information
+    // Generate a request for oracles to fetch flight information - triggered from the UI
     function fetchFlightStatus
                         (
                             address airline,
@@ -263,6 +265,7 @@ contract FlightSuretyApp {
                             uint256 timestamp                            
                         )
                         external
+                        requireIsOperational
     {
         uint8 index = getRandomIndex(msg.sender);
 
@@ -299,6 +302,7 @@ contract FlightSuretyApp {
                                     bytes32 flightCode
                                 )
                                 external
+                                requireIsOperational
                                 
     {
         flightSuretyData.creditInsurees(insuree,flightCode);
@@ -309,6 +313,7 @@ contract FlightSuretyApp {
                                 bytes32 flightCode
                             )
                             external
+                            requireIsOperational
     {
         flightSuretyData.pay(msg.sender,flightCode);
     }

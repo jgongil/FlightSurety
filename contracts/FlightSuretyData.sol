@@ -236,6 +236,8 @@ contract FlightSuretyData {
                                 address wallet
                             )
                             external
+                            requireIsOperational
+                            requireIsCallerAuthorized
     {
         require(!airlineProfiles[wallet].isRegistered, "Airline is already registered.");
 
@@ -313,6 +315,7 @@ contract FlightSuretyData {
                             external
                             payable
                             requireIsOperational
+                            requireIsCallerAuthorized
     {
         bytes32 insuranceKey = keccak256(abi.encodePacked(buyer, flightCode));
         insuranceAssetWallet[insuranceKey] = msg.value;
@@ -327,6 +330,8 @@ contract FlightSuretyData {
                                     bytes32 flightCode
                                 )
                                 external
+                                requireIsOperational
+                                requireIsCallerAuthorized
     
     {
         bytes32 insuranceKey = keccak256(abi.encodePacked(insuree, flightCode));
