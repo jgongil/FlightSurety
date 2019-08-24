@@ -19,7 +19,7 @@ contract FlightSuretyApp {
     bool private operational = true;
 
     address private contractOwner;          // Account used to deploy contract
-
+       
     // Flight status codees
     uint8 private constant STATUS_CODE_UNKNOWN = 0;
     uint8 private constant STATUS_CODE_ON_TIME = 10;
@@ -28,13 +28,7 @@ contract FlightSuretyApp {
     uint8 private constant STATUS_CODE_LATE_TECHNICAL = 40;
     uint8 private constant STATUS_CODE_LATE_OTHER = 50;
 
-    struct Flight {
-        bool isRegistered;
-        uint8 statusCode;
-        uint256 updatedTimestamp;        
-        address airline;
-    }
-    mapping(bytes32 => Flight) private flights;
+    uint256 private constant MAX_INSURANCE_PRICE = 1 ether;
 
     // Data Contract
     FlightSuretyData flightSuretyData; //State variable referencing the data contract deployed. It´s initiated in the constructor
@@ -141,11 +135,22 @@ contract FlightSuretyApp {
     {
         return airlineVotes[airline].length;
     }
+
+    function isFlightRegistered(
+                            bytes32 flightCode
+                            )
+                            external
+                            view
+                            returns(bool)
+    {
+        return flightSuretyData.isFlightRegistered(flightCode);
+    }
     /********************************************************************************************/
     /*                                     SMART CONTRACT FUNCTIONS                             */
     /********************************************************************************************/
 
-  
+// AIRLINE HANDLING starts
+
    /**
     * @dev Add an airline to the registration queue
     *
@@ -200,24 +205,30 @@ contract FlightSuretyApp {
                             external
                             payable
     {
-/*         uint256 amountToReturn = msg.value - JOIN_FEE;
+    /*         uint256 amountToReturn = msg.value - JOIN_FEE;
         address(dataContractAddress).transfer(JOIN_FEE);
         msg.sender.transfer(amountToReturn); */
 
         flightSuretyData.fundAirline.value(msg.value)(msg.sender);
     }
 
+// AIRLINE HANDLING ends
+
+// FLIGHT HANDLING starts
    /**
     * @dev Register a future flight for insuring.
     *
     */  
     function registerFlight
                                 (
+                                    bytes32 flightCode,
+                                    uint8 statusCode,
+                                    uint256 updatedTimestamp,
+                                    address airline
                                 )
                                 external
-                                pure
     {
-
+        flightSuretyData.registerFlight(flightCode,statusCode,updatedTimestamp,airline);
     }
     
    /**
@@ -258,7 +269,24 @@ contract FlightSuretyApp {
         emit OracleRequest(index, airline, flight, timestamp);
     } 
 
+// FLIGHT HANDLING ends
 
+// PASSENGER HANDLING starts
+
+    function buy
+                            (
+                                bytes32 flightCode
+                            )
+                            external
+                            payable
+                            requireIsOperational
+    {
+        require(this.isFlightRegistered(flightCode), "The flightCode provided is not registered");
+        require(msg.value <= MAX_INSURANCE_PRICE, "Max payable amount is 1 ether");
+        flightSuretyData.buy.value(msg.value)(msg.sender,flightCode);
+    }
+
+// PASSENGER HANDLING ends
 // region ORACLE MANAGEMENT
 
     // Incremented to add pseudo-randomness at various points
@@ -431,6 +459,7 @@ contract FlightSuretyApp {
 // endregion
 }
 
+// FlightSuretyData INTERFACE starts
 contract FlightSuretyData { // modifiers are implemented in the data contract
     function registerAirline
                             (
@@ -467,4 +496,25 @@ contract FlightSuretyData { // modifiers are implemented in the data contract
                             external
                             view
                             returns(uint256);
+    function registerFlight  (
+                                bytes32 flightCode,
+                                uint8 statusCode,
+                                uint256 updatedTimestamp,
+                                address airline
+                            )
+                            external;
+    function isFlightRegistered(
+                            bytes32 flightCode
+                            )
+                            external
+                            view
+                            returns(bool);
+    function buy
+                            (
+                                address buyer,
+                                bytes32 flightCode
+                            )
+                            external
+                            payable;
 }
+// FlightSuretyData INTERFACE ends

@@ -27,9 +27,20 @@ contract FlightSuretyData {
     //Airline funded balance
     mapping(address => uint256) internal airlineFunds;
 
-
-    // Fees
+    // Fees for airlines to join
     uint256 public constant JOIN_FEE = 10 ether;
+
+
+    struct Flight {
+        bool isRegistered;
+        uint8 statusCode;
+        uint256 updatedTimestamp;
+        address airline;
+    }
+    mapping(bytes32 => Flight) private flights;
+
+    // Flight insurance assets wallet: (Flight+Passenger) -> assetId -> balance
+    mapping(bytes32 => uint256) insuranceAssetWallet;
 
     /********************************************************************************************/
     /*                                       EVENT DEFINITIONS                                  */
@@ -56,6 +67,8 @@ contract FlightSuretyData {
                                                     isFunded: false
                                                      });                                              
     }
+
+//MODIFIERS START
 
     /********************************************************************************************/
     /*                                       FUNCTION MODIFIERS                                 */
@@ -90,6 +103,9 @@ contract FlightSuretyData {
         _;
     }
 
+//MODIFIERS END
+
+//UTILITY FUNCTIONS START
     /********************************************************************************************/
     /*                                       UTILITY FUNCTIONS                                  */
     /********************************************************************************************/
@@ -182,6 +198,19 @@ contract FlightSuretyData {
     {
         return airlineFunds[airline];
     }
+
+    function isFlightRegistered(
+                            bytes32 flightCode
+                            )
+                            external
+                            view
+                            returns(bool)
+    {
+        return flights[flightCode].isRegistered;
+    }
+
+//UTILITY FUNCTIONS END
+
     /********************************************************************************************/
     /*                                     SMART CONTRACT FUNCTIONS                             */
     /********************************************************************************************/
@@ -234,17 +263,45 @@ contract FlightSuretyData {
     }
 // AIRLINES MANAGEMENT ends
 
+    /**
+    * @dev Register a future flight for insuring.
+    *
+    */  
+    function registerFlight
+                                (
+                                    bytes32 flightCode,
+                                    uint8 statusCode,
+                                    uint256 updatedTimestamp,
+                                    address airline
+                                )
+                                external
+                                requireIsOperational
+                                requireIsCallerAuthorized
+    {
+        flights[flightCode] = Flight({
+                                        isRegistered: true,
+                                        statusCode:statusCode,
+                                        updatedTimestamp:updatedTimestamp,
+                                        airline: airline
+
+                                    });
+    }
+
    /**
-    * @dev Buy insurance for a flight
+    * @dev Buy insurance for a flight: Passenger buys insurance based on flight code.
     *
     */   
     function buy
-                            (                             
+                            (
+                                address buyer,
+                                bytes32 flightCode
                             )
                             external
                             payable
+                            requireIsOperational
     {
-
+        bytes32 insuranceKey = keccak256(abi.encodePacked(buyer, flightCode));
+        insuranceAssetWallet[insuranceKey] = msg.value;
     }
 
     /**
@@ -260,7 +317,7 @@ contract FlightSuretyData {
     
 
     /**
-     *  @dev Transfers eligible payout funds to insuree
+     *  @dev Transfers eligible payout funds to insuree, they can call this to withdraw funds
      *
     */
     function pay
@@ -269,6 +326,7 @@ contract FlightSuretyData {
                             external
                             pure
     {
+        
     }
 
    /**

@@ -203,4 +203,42 @@ contract('Flight Surety Tests', async (accounts) => {
 
   });
 
+  it('(flight) A flight can be registered', async () => {
+
+    // Timestamp calculation
+    let blockNum = await web3.eth.getBlockNumber();
+    let block = await web3.eth.getBlock(blockNum);
+    updatedTimestamp = block.timestamp;
+    console.log("BlockNum: ", blockNum)
+
+    flightCode = web3.utils.hexToBytes('0x000000ea');
+    statusCode = 0;
+    airline = config.firstAirline;
+
+    // Registering flight with the above parameters
+    await config.flightSuretyApp.registerFlight(flightCode,statusCode,updatedTimestamp,airline, {from: config.owner});
+
+    let isRegistered = await config.flightSuretyApp.isFlightRegistered(flightCode);
+
+    assert.equal(isRegistered, true, "Flight registration went wrong");
+
+  });
+
+  it('(passenger) A passenger can buy an insurance for one of the registered flights', async () => {
+
+    // Timestamp calculation
+    let passenger = config.testAddresses[5];
+    flightCode = web3.utils.hexToBytes('0x000000ea');
+
+    console.log("Passenger " + passenger + "is buying insurance for flight: " + web3.utils.bytesToHex(flightCode));
+
+    // Passenger buys insurance for one of the registered flights
+    await config.flightSuretyApp.buy(flightCode, {from: passenger, value: web3.utils.toWei('1', 'ether')});
+
+
+    assert.equal(true, true, "Flight insurance purchase failed");
+
+  });
+
+
 });
