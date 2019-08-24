@@ -28,11 +28,13 @@ contract FlightSuretyApp {
     uint8 private constant STATUS_CODE_LATE_TECHNICAL = 40;
     uint8 private constant STATUS_CODE_LATE_OTHER = 50;
 
+    // Maximum payable price for an insurance
     uint256 private constant MAX_INSURANCE_PRICE = 1 ether;
 
     // Data Contract
     FlightSuretyData flightSuretyData; //State variable referencing the data contract deployed. It´s initiated in the constructor
 
+    // Consensus data
     mapping(address => address[]) private airlineVotes;
     address[] airlineProRegister = new address[](0);
 
@@ -68,6 +70,7 @@ contract FlightSuretyApp {
     /*                                       CONSTRUCTOR                                        */
     /********************************************************************************************/
 
+
     /**
     * @dev Contract constructor
     *
@@ -86,11 +89,12 @@ contract FlightSuretyApp {
     /********************************************************************************************/
     /*                                       UTILITY FUNCTIONS                                  */
     /********************************************************************************************/
+// UTILITIES start ------
 
     function isOperational() 
-                            public 
-                            pure 
-                            returns(bool) 
+                            public
+                            pure
+                            returns(bool)
     {
         return true;  // Modify to call data contract's status
     }
@@ -101,7 +105,7 @@ contract FlightSuretyApp {
                         external
                         view
                         //requireContractOwner
-                        returns(bool)     
+                        returns(bool)
     {
         return flightSuretyData.isAirlineRegistered(airline);
     }
@@ -145,18 +149,21 @@ contract FlightSuretyApp {
     {
         return flightSuretyData.isFlightRegistered(flightCode);
     }
+
+// UTILITIES end ------
+
     /********************************************************************************************/
     /*                                     SMART CONTRACT FUNCTIONS                             */
     /********************************************************************************************/
 
-// AIRLINE HANDLING starts
+// AIRLINE HANDLING starts ------
 
    /**
     * @dev Add an airline to the registration queue
     *
-    */   
+    */
     function registerAirline
-                            (   
+                            (
                                 address airlineToRegister
                             )
                             external
@@ -172,7 +179,7 @@ contract FlightSuretyApp {
         // 1) When less than 5 airlines are registered, any registered airline can perform registration
         if (airlinesCount < 4){
                     flightSuretyData.registerAirline(airlineToRegister);
-        } 
+        }
         // 2) Multi party consensus handling - 50% of the reg airlines must have voted for airlineToRegiter
         else {
 
@@ -193,14 +200,14 @@ contract FlightSuretyApp {
             if (airlineVotes[airlineToRegister].length >= airlineMajority) {
                 flightSuretyData.registerAirline(airlineToRegister);
                 //airlineVotes[airlineToRegister] = new address[](0);
-            } 
+            }
 
         }
         return (success, 0);
     }
 
     function fundAirline
-                            (   
+                            (
                             )
                             external
                             payable
@@ -212,13 +219,13 @@ contract FlightSuretyApp {
         flightSuretyData.fundAirline.value(msg.value)(msg.sender);
     }
 
-// AIRLINE HANDLING ends
+// AIRLINE HANDLING ends ------
 
-// FLIGHT HANDLING starts
+// FLIGHT HANDLING starts ------
    /**
     * @dev Register a future flight for insuring.
     *
-    */  
+    */
     function registerFlight
                                 (
                                     bytes32 flightCode,
@@ -230,11 +237,11 @@ contract FlightSuretyApp {
     {
         flightSuretyData.registerFlight(flightCode,statusCode,updatedTimestamp,airline);
     }
-    
+
    /**
     * @dev Called after oracle has updated flight status
     *
-    */  
+    */
     function processFlightStatus
                                 (
                                     address airline,
@@ -267,11 +274,11 @@ contract FlightSuretyApp {
                                             });
 
         emit OracleRequest(index, airline, flight, timestamp);
-    } 
+    }
 
-// FLIGHT HANDLING ends
+// FLIGHT HANDLING ends ------
 
-// PASSENGER HANDLING starts
+// PASSENGER HANDLING starts ------
 
     function buy
                             (
@@ -286,8 +293,28 @@ contract FlightSuretyApp {
         flightSuretyData.buy.value(msg.value)(msg.sender,flightCode);
     }
 
-// PASSENGER HANDLING ends
-// region ORACLE MANAGEMENT
+    function creditInsurees
+                                (
+                                    address insuree,
+                                    bytes32 flightCode
+                                )
+                                external
+                                
+    {
+        flightSuretyData.creditInsurees(insuree,flightCode);
+    }
+
+    function pay
+                            (
+                                bytes32 flightCode
+                            )
+                            external
+    {
+        flightSuretyData.pay(msg.sender,flightCode);
+    }
+// PASSENGER HANDLING ends ------
+
+// ORACLE MANAGEMENT starts ------
 
     // Incremented to add pseudo-randomness at various points
     uint8 private nonce = 0;    
@@ -456,10 +483,10 @@ contract FlightSuretyApp {
         return random;
     }
 
-// endregion
+// ORACLE MANAGEMENT ends ------
 }
 
-// FlightSuretyData INTERFACE starts
+// FlightSuretyData INTERFACE starts ------
 contract FlightSuretyData { // modifiers are implemented in the data contract
     function registerAirline
                             (
@@ -516,5 +543,17 @@ contract FlightSuretyData { // modifiers are implemented in the data contract
                             )
                             external
                             payable;
+    function creditInsurees
+                            (
+                                address insuree,
+                                bytes32 flightCode
+                            )
+                            external;
+    function pay
+                            (
+                                address insuree,
+                                bytes32 flightCode
+                            )
+                            external;
 }
-// FlightSuretyData INTERFACE ends
+// FlightSuretyData INTERFACE ends ------

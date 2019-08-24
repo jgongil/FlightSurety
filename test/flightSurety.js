@@ -9,14 +9,14 @@ contract('Flight Surety Tests', async (accounts) => {
     config = await Test.Config(accounts);
 
     // Grant access to app contract to call data contract
-    console.log('\nData Contract used for testing', config.flightSuretyData.address);
-    console.log('App Contract used for testing', config.flightSuretyApp.address);
+    console.log('\n -> Data Contract used for testing', config.flightSuretyData.address);
+    console.log('-> App Contract used for testing', config.flightSuretyApp.address);
     await config.flightSuretyData.authorizeContract(config.flightSuretyApp.address);
 
 
     // register first airline (owner)
-    console.log('owner - accounts[0]:', await config.owner); 
-    console.log('firstAirline - accounts[2]:', await config.firstAirline);    
+    console.log('-> owner - accounts[0]:', await config.owner); 
+    console.log('-> firstAirline - accounts[2]:', await config.firstAirline);    
 
   });
 
@@ -116,13 +116,13 @@ contract('Flight Surety Tests', async (accounts) => {
     await config.flightSuretyApp.fundAirline({from: config.firstAirline, value: web3.utils.toWei('10', 'ether')});
     
     let balanceInContract = await config.flightSuretyApp.getAirlineBalance(config.firstAirline);
-    console.log("First Airline Balance in the contract after funding (ether): ", web3.utils.fromWei(balanceInContract, "ether"));//BigNumber(balance).toNumber());
+    console.log("-> First Airline Balance in the contract after funding (ether): ", web3.utils.fromWei(balanceInContract, "ether"));//BigNumber(balance).toNumber());
     /* 
     let accountBalance = await web3.eth.getBalance(config.firstAirline);
     console.log("First Airline account balance: ",  web3.utils.fromWei(accountBalance, "ether"));
  */
     let contractBalance = await web3.eth.getBalance(config.flightSuretyData.address);
-    console.log("Data Contract balance after funding: ",  web3.utils.fromWei(contractBalance, "ether"));
+    console.log("-> Data Contract balance after funding: ",  web3.utils.fromWei(contractBalance, "ether"));
 
     let result = await config.flightSuretyApp.isAirlineFunded(config.firstAirline);
     assert.equal(result, true, "First airline couldn´t be funded");
@@ -151,7 +151,7 @@ contract('Flight Surety Tests', async (accounts) => {
     await config.flightSuretyApp.registerAirline(config.testAddresses[4], {from: config.firstAirline});
 
     let count = await config.flightSuretyData.countAirlinesRegistered();
-    console.log("Airlines registered: ", count);
+    console.log("-> Airlines registered: ", count);
 
     let registered = await config.flightSuretyApp.isAirlineRegistered(config.firstAirline);
     let registered0 = await config.flightSuretyApp.isAirlineRegistered(config.testAddresses[0]);
@@ -161,12 +161,12 @@ contract('Flight Surety Tests', async (accounts) => {
     let registered4 = await config.flightSuretyApp.isAirlineRegistered(config.testAddresses[4]);
 
     
-    console.log("Airlines registered firstAirline: ", registered);
-    console.log("Airlines registered testAddresses[0]: ", registered0);
-    console.log("Airlines registered testAddresses[1]: ", registered1);
-    console.log("Airlines registered testAddresses[2]: ", registered2);
-    console.log("Airlines registered testAddresses[3]: ", registered3); // 5th airline won´t be registered without consensus
-    console.log("Airlines registered testAddresses[4]: ", registered4);
+    console.log("-> Airlines registration for firstAirline: ", registered);
+    console.log("-> Airlines registration for testAddresses[0]: ", registered0);
+    console.log("-> Airlines registration for testAddresses[1]: ", registered1);
+    console.log("-> Airlines registration for testAddresses[2]: ", registered2);
+    console.log("-> Airlines registration for testAddresses[3]: ", registered3); // 5th airline won´t be registered without consensus
+    console.log("-> Airlines registration for testAddresses[4]: ", registered4);
 
     assert.equal(registered & registered0 & registered1 & registered2, true, "Registration of 5 airlines went wrong");
 
@@ -185,7 +185,7 @@ contract('Flight Surety Tests', async (accounts) => {
     assert.equal(funded & funded0 & funded1 & funded2, true, "Funding of 5 airlines went wrong");
 
     let accountBalance = await web3.eth.getBalance(config.flightSuretyData.address);
-    console.log("Contract balance: ",  web3.utils.fromWei(accountBalance, "ether"));
+    console.log("-> Contract balance after all registration attempts: ",  web3.utils.fromWei(accountBalance, "ether"));
 
   });
 
@@ -198,7 +198,7 @@ contract('Flight Surety Tests', async (accounts) => {
     let votes = await config.flightSuretyApp.getAirlineVotes(config.testAddresses[3])
 
     assert.equal(registered, true, "Registration of 5th airline went wrong");
-    console.log("votes: ", votes);
+    console.log("-> Votes for a fith airline to be registered: ", votes);
     assert.equal(votes>=2, true, "Registration of 5th airline went wrong");
 
   });
@@ -209,7 +209,7 @@ contract('Flight Surety Tests', async (accounts) => {
     let blockNum = await web3.eth.getBlockNumber();
     let block = await web3.eth.getBlock(blockNum);
     updatedTimestamp = block.timestamp;
-    console.log("BlockNum: ", blockNum)
+    // console.log("BlockNum: ", blockNum)
 
     flightCode = web3.utils.hexToBytes('0x000000ea');
     statusCode = 0;
@@ -230,13 +230,44 @@ contract('Flight Surety Tests', async (accounts) => {
     let passenger = config.testAddresses[5];
     flightCode = web3.utils.hexToBytes('0x000000ea');
 
-    console.log("Passenger " + passenger + "is buying insurance for flight: " + web3.utils.bytesToHex(flightCode));
+    console.log("-> Passenger " + passenger + "is buying insurance for flight: " + web3.utils.bytesToHex(flightCode));
 
     // Passenger buys insurance for one of the registered flights
     await config.flightSuretyApp.buy(flightCode, {from: passenger, value: web3.utils.toWei('1', 'ether')});
 
 
     assert.equal(true, true, "Flight insurance purchase failed");
+
+  });
+
+  it('(passenger) A passenger can claim the insurance for one of the registered flights', async () => {
+
+    // Timestamp calculation
+    let passenger = config.testAddresses[5];
+    flightCode = web3.utils.hexToBytes('0x000000ea');
+
+    console.log("-> Passenger " + passenger + " is claiming insurance for flight: " + web3.utils.bytesToHex(flightCode));
+
+    // Passenger buys insurance for one of the registered flights
+    await config.flightSuretyApp.creditInsurees(passenger,flightCode);
+    let credit = await config.flightSuretyData.getInsureeCredit(passenger,flightCode)
+    console.log("-> Passenger credit for " + passenger + " is " + credit);
+
+    // Initial check of passenger and data contract balances
+    let passengerBalance1 = await web3.eth.getBalance(passenger);
+    console.log("-> Passenger balance before withdrawal: ",  web3.utils.fromWei(passengerBalance1, "ether"));
+    let contractBalance = await web3.eth.getBalance(config.flightSuretyData.address);
+    console.log("-> Data Contract balance before withdrawal: ",  web3.utils.fromWei(contractBalance, "ether"));
+
+    // Passenger withdrawal through app contract
+    // await config.flightSuretyData.pay(flightCode,{from: passenger});
+    await config.flightSuretyApp.pay(flightCode,{from: passenger});
+
+    let passengerBalance2 = await web3.eth.getBalance(passenger);
+    console.log("-> Passenger balance after withdrawal: ",  web3.utils.fromWei(passengerBalance2, "ether"));
+
+
+    assert.equal(passengerBalance2-passengerBalance1 > 1, true, "Flight insurance claiming failed");
 
   });
 

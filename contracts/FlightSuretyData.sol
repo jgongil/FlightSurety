@@ -45,8 +45,6 @@ contract FlightSuretyData {
     /********************************************************************************************/
     /*                                       EVENT DEFINITIONS                                  */
     /********************************************************************************************/
-
-
     /**
     * @dev Constructor
     *      The deploying account becomes contractOwner
@@ -54,25 +52,24 @@ contract FlightSuretyData {
     constructor
                                 (
                                     address newFirstAirline
-                                ) 
-                                public 
+                                )
+                                public
     {
         contractOwner = msg.sender;
         firstAirline = newFirstAirline;
         // adds airline address to the list of addresses
-        registeredAirlines.push(firstAirline);  
+        registeredAirlines.push(firstAirline);
         // First airline gets registered as admin
         airlineProfiles[firstAirline] = AirlineProfile({
                                                     isRegistered: true,
                                                     isFunded: false
-                                                     });                                              
+                                                     });
     }
-
-//MODIFIERS START
 
     /********************************************************************************************/
     /*                                       FUNCTION MODIFIERS                                 */
     /********************************************************************************************/
+// MODIFIERS start ------
 
     // Modifiers help avoid duplication of code. They are typically used to validate something
     // before a function is allowed to be executed.
@@ -103,12 +100,13 @@ contract FlightSuretyData {
         _;
     }
 
-//MODIFIERS END
+// MODIFIERS end ------
 
-//UTILITY FUNCTIONS START
     /********************************************************************************************/
     /*                                       UTILITY FUNCTIONS                                  */
     /********************************************************************************************/
+
+// UTILITIES start ------
 
     /**
     * @dev Get operating status of contract
@@ -209,13 +207,25 @@ contract FlightSuretyData {
         return flights[flightCode].isRegistered;
     }
 
-//UTILITY FUNCTIONS END
+    function getInsureeCredit(
+                            address insuree,
+                            bytes32 flightCode
+                            )
+                            external
+                            view
+                            returns(uint256)
+    {
+        bytes32 insuranceKey = keccak256(abi.encodePacked(insuree, flightCode));
+        return insuranceAssetWallet[insuranceKey];
+    }
+
+// UTILITIES end ------
 
     /********************************************************************************************/
     /*                                     SMART CONTRACT FUNCTIONS                             */
     /********************************************************************************************/
+// AIRLINE HANDLING starts ------
 
-// AIRLINES MANAGEMENT starts
    /**
     * @dev Add an airline to the registration queue
     *      Can only be called from FlightSuretyApp contract
@@ -230,7 +240,7 @@ contract FlightSuretyData {
         require(!airlineProfiles[wallet].isRegistered, "Airline is already registered.");
 
         // adds airline address to the list of registered airline addresses
-        registeredAirlines.push(wallet);  
+        registeredAirlines.push(wallet);
         // populates the relevant profile
         airlineProfiles[wallet] = AirlineProfile({
                                                     isRegistered: true,
@@ -256,13 +266,14 @@ contract FlightSuretyData {
 
         airlineFunds[airline] = airlineFunds[airline].add(msg.value); // Keep record of contributions of every company
 
-        // mark airline as funded if it is not, and the value reaches the JOIN_FEE        
+        // mark airline as funded if it is not, and the value reaches the JOIN_FEE
         if ((airlineFunds[airline] >= JOIN_FEE) && !airlineProfiles[airline].isFunded){
             airlineProfiles[airline].isFunded = true;
         }
     }
-// AIRLINES MANAGEMENT ends
+// AIRLINE HANDLING ends ------
 
+// FLIGHTS HANDLING starts ------
     /**
     * @dev Register a future flight for insuring.
     *
@@ -287,10 +298,13 @@ contract FlightSuretyData {
                                     });
     }
 
+// FLIGHTS HANDLING ends ------
+
+// PASSENGER HANDLING starts ------
    /**
     * @dev Buy insurance for a flight: Passenger buys insurance based on flight code.
     *
-    */   
+    */
     function buy
                             (
                                 address buyer,
@@ -309,38 +323,41 @@ contract FlightSuretyData {
     */
     function creditInsurees
                                 (
+                                    address insuree,
+                                    bytes32 flightCode
                                 )
                                 external
-                                pure
+    
     {
+        bytes32 insuranceKey = keccak256(abi.encodePacked(insuree, flightCode));
+        uint256 creditedAmount = insuranceAssetWallet[insuranceKey].mul(15).div(10);
+        insuranceAssetWallet[insuranceKey] = creditedAmount;
     }
     
-
     /**
      *  @dev Transfers eligible payout funds to insuree, they can call this to withdraw funds
      *
     */
     function pay
                             (
+                                address insuree,
+                                bytes32 flightCode
                             )
                             external
-                            pure
+                            
     {
-        
+        bytes32 insuranceKey = keccak256(abi.encodePacked(insuree, flightCode));
+        uint256 creditedAmount = insuranceAssetWallet[insuranceKey];
+        // Checks
+        require(creditedAmount >= 0, "Passenger doesn´t have credit");
+        // Effects
+        insuranceAssetWallet[insuranceKey] = 0; // Debit
+        // Interaction
+        insuree.transfer(creditedAmount); // Credit
+        delete insuranceAssetWallet[insuranceKey]; //removes the asset
     }
 
-   /**
-    * @dev Initial funding for the insurance. Unless there are too many delayed flights
-    *      resulting in insurance payouts, the contract should be self-sustaining
-    *
-    */   
-    function fund
-                            (   
-                            )
-                            public
-                            payable
-    {
-    }
+// PASSENGER HANDLING ends ------
 
     function getFlightKey
                         (
@@ -350,7 +367,7 @@ contract FlightSuretyData {
                         )
                         pure
                         internal
-                        returns(bytes32) 
+                        returns(bytes32)
     {
         return keccak256(abi.encodePacked(airline, flight, timestamp));
     }
