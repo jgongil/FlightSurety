@@ -300,6 +300,18 @@ contract FlightSuretyData {
                                     });
     }
 
+    function getFlightKey
+                        (
+                            address airline,
+                            string memory flight,
+                            uint256 timestamp
+                        )
+                        pure
+                        internal
+                        returns(bytes32)
+    {
+        return keccak256(abi.encodePacked(airline, flight, timestamp));
+    }
 // FLIGHTS HANDLING ends ------
 
 // PASSENGER HANDLING starts ------
@@ -363,19 +375,6 @@ contract FlightSuretyData {
     }
 
 // PASSENGER HANDLING ends ------
-
-    function getFlightKey
-                        (
-                            address airline,
-                            string memory flight,
-                            uint256 timestamp
-                        )
-                        pure
-                        internal
-                        returns(bytes32)
-    {
-        return keccak256(abi.encodePacked(airline, flight, timestamp));
-    }
 
     /**
     * @dev Fallback function for funding smart contract.

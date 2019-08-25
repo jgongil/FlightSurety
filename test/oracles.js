@@ -4,7 +4,7 @@ var Test = require('../config/testConfig.js');
 
 contract('Oracles', async (accounts) => {
 
-  const TEST_ORACLES_COUNT = 20;
+  const TEST_ORACLES_COUNT = 5;
   var config;
   before('setup contract', async () => {
     config = await Test.Config(accounts);
@@ -17,6 +17,7 @@ contract('Oracles', async (accounts) => {
     const STATUS_CODE_LATE_TECHNICAL = 40;
     const STATUS_CODE_LATE_OTHER = 50;
 
+    //web3.eth.defaultAccount = accounts[0];
   });
 
 
@@ -34,9 +35,18 @@ contract('Oracles', async (accounts) => {
   });
 
   it('can request flight status', async () => {
+           
     
+/*     // Watch the emitted event OracleReport()
+    config.flightSuretyApp.events.OracleRequest({
+      fromBlock: 0
+    }, function (error, event) {
+      if (error) console.log(error)
+      console.log(event) // submitOracleResponse comes here
+    });
+ */
     // ARRANGE
-    let flight = 'ND1309'; // Course number
+    let flight = 'ND8801'; // Course number
     let timestamp = Math.floor(Date.now() / 1000);
 
     // Submit a request for oracles to get status information for a flight
@@ -66,6 +76,7 @@ contract('Oracles', async (accounts) => {
       }
     }
 
+/*     assert.equal(eventEmitted, true, 'Invalid event emitted')     */
 
   });
 
