@@ -23,13 +23,30 @@
 
         <div id="display-wrapper" class="top-20">
         </div>
+        <!-- fetchFlightStatus to Oracle -->
         <div class="row top-20">
-            <label class="form">Flight</label> <input type="text" id="flight-number"> <btn class="btn btn-primary" id="submit-oracle">Submit to Oracles</btn>
+            <label class="form">Flight</label> 
+            <input type="text" id="flight-number"> 
+            <btn class="btn btn-primary" id="submit-oracle">Submit to Oracles</btn>
         </div>
-        <div id="display-wrapper" class="top-20">
+        <!-- fetchFlightStatus to Oracle based on selection -->
+        <div class="row top-20">
+            <label class="form" for="flight-selection">Available Flights</label>
+            <select id="flight-selection">
+            </select>
+            <btn class="btn btn-primary" id="submit-oracle">Submit to Oracles</btn>
+            
+            <label class="form" for="number">Value</label>
+            <input type="number" id="num-value" value="2">
+            <btn class="btn btn-primary" id="submit-insurance">Purchase insurance</btn>
         </div>
-        <div class="row top-20"></div>
-            <label class="form">Flight</label> <input type="text" id="flight-number-inssured"> <btn class="btn btn-primary" id="purchase-insurance">Purchase Insurance</btn>
+        <div class="row top-20">
+            <label class="form">Flight</label>
+            <input type="text" id="text-flight" value="LU2525">
+
+            <label class="form">Timestamp</label>
+            <input type="number" id="num-timestamp" value="1564973929">
+            <btn class="btn btn-primary" id="register-flight">Register Flight</btn>
         </div>
 
     </main>
