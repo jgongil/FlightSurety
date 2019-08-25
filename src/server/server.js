@@ -11,47 +11,39 @@ let accounts;
 let flightSuretyApp = new web3.eth.Contract(FlightSuretyApp.abi, config.appAddress);
 
 // Oracle status codes
-const STATUS_CODE_UNKNOWN = 0;
-const STATUS_CODE_ON_TIME = 10;
-const STATUS_CODE_LATE_AIRLINE = 20;
-const STATUS_CODE_LATE_WEATHER = 30;
-const STATUS_CODE_LATE_TECHNICAL = 40;
-const STATUS_CODE_LATE_OTHER = 50;
+/* STATUS_CODE_UNKNOWN = 0;
+STATUS_CODE_ON_TIME = 10;
+STATUS_CODE_LATE_AIRLINE = 20;
+STATUS_CODE_LATE_WEATHER = 30;
+STATUS_CODE_LATE_TECHNICAL = 40;
+STATUS_CODE_LATE_OTHER = 50; */
 const ORACLES_COUNT = 5;
-
+const STATUS_CODES = [0, 10, 20, 30, 40, 50];
+let nresp = 0; // number of successful responses
 
 web3.eth.getAccounts(async (error, acc) => {
   accounts = acc;
   // Register oracles at server startup
   await initOracleRegistration();
-
-  // Listening to events
-/*   flightSuretyApp.events.OracleRequest({
-    fromBlock: 'latest'
-  }, function (error, event) {
-    if (error) console.log(error)
-    console.log(event) // submitOracleResponse comes here
-  }); */
   
   //Listening to Oracle Requests
   await flightSuretyApp.events.OracleRequest({
     fromBlock: 0
-  }, oracleRequestHandler);
+  }, oracleRequestHandler); // OracleRequestHandler is triggered
 
   flightSuretyApp.events.OracleReport({
     fromBlock: 0
   }, function (error, event) {
     if (error) console.log(error)
-    console.log(event)
+    console.log("Oracle report event received: ", event)
   });
 
   flightSuretyApp.events.FlightStatusInfo({
     fromBlock: 0
   }, function (error, event) {
     if (error) console.log(error)
-    console.log(event)
+    console.log("Flight Status Info event received: ", event)
   });
-
 
 });
 
@@ -63,9 +55,10 @@ app.get('/api', (req, res) => {
     })
 })
 
+
 async function initOracleRegistration() {
 
-  // Based on Oracle test cases
+  // Based on Oracle test cases, starting with the registration of oracles
   let fee = await flightSuretyApp.methods.REGISTRATION_FEE().call();
   for(let a=1; a<ORACLES_COUNT; a++) {      
     await flightSuretyApp.methods.registerOracle().send({ from: accounts[a], value: fee, gas: 3000000 });
@@ -75,17 +68,23 @@ async function initOracleRegistration() {
 
 }
 
+// OracleRequest event is handled
 async function oracleRequestHandler(error, event) {
   if (error) console.log(error)
   console.log("Oracle request handler working");
-  console.log(event);
+  console.log("Oracle request Event Received: ", event);
 
   try {
-    for (let i = 1; i < ORACLES_COUNT; i++) {
-        let indexes = await flightSuretyApp.methods.getMyIndexes().call({from: accounts[i]});
-        if (indexes.indexOf(event.returnValues.index) >= 0) {
+
+    for (let i = 1; i < ORACLES_COUNT; i++) { // Iterate every oracle registered previously
+
+        let indexes = await flightSuretyApp.methods.getMyIndexes().call({from: accounts[i]}); // Retrives indexes assigned to the Oracle during registration
+
+        if (indexes.indexOf(event.returnValues.index) >= 0) { // when the index received in OracleRequest one of the oracle´s indexes
             console.log("Oracle %d, address %s, indexes %d %d %d, select: %s", i, accounts[i], indexes[0], indexes[1], indexes[2], event.returnValues.index);
-            const pos = 2;
+            ++nresp;
+            let codeIndex = getRandomStatus(STATUS_CODES.length - 1);
+            let code = STATUS_CODES[codeIndex];
 
             await flightSuretyApp.methods
                 .submitOracleResponse(
@@ -93,16 +92,28 @@ async function oracleRequestHandler(error, event) {
                     event.returnValues.airline,
                     event.returnValues.flight,
                     event.returnValues.timestamp,
-                    STATUS_CODE_LATE_AIRLINE
+                    code
                 )
                 .send({from: accounts[i], gas: 5000000});
+
+/*                 uint8 index,
+                address airline,
+                string flight,
+                uint256 timestamp,
+                uint8 statusCode */
         }
       }
+      console.log("Number of successful responses: ",nresp);
   } catch (e) {
       console.log(e);
   }
 
 }
+
+function getRandomStatus(maxVal){
+  return  Math.round(Math.random() * maxVal);
+}
+
 export default app;
 
 

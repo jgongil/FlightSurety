@@ -36,15 +36,6 @@ contract('Oracles', async (accounts) => {
 
   it('can request flight status', async () => {
            
-    
-/*     // Watch the emitted event OracleReport()
-    config.flightSuretyApp.events.OracleRequest({
-      fromBlock: 0
-    }, function (error, event) {
-      if (error) console.log(error)
-      console.log(event) // submitOracleResponse comes here
-    });
- */
     // ARRANGE
     let flight = 'ND8801'; // Course number
     let timestamp = Math.floor(Date.now() / 1000);
