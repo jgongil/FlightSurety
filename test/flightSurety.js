@@ -206,19 +206,19 @@ contract('Flight Surety Tests', async (accounts) => {
   it('(flight) A flight can be registered', async () => {
 
     // Timestamp calculation
-    let blockNum = await web3.eth.getBlockNumber();
-    let block = await web3.eth.getBlock(blockNum);
-    updatedTimestamp = block.timestamp;
-    // console.log("BlockNum: ", blockNum)
-
-    flightCode = web3.utils.hexToBytes('0x000000ea');
+/*     let blockNum = await web3.eth.getBlockNumber();
+    let block = await web3.eth.getBlock(blockNum); */
+  
+    // Flight registration parameters
+    flightName = 'MAD1984';
     statusCode = 0;
+    updatedTimestamp = 125;//block.timestamp;
     airline = config.firstAirline;
 
     // Registering flight with the above parameters
-    await config.flightSuretyApp.registerFlight(flightCode,statusCode,updatedTimestamp,airline, {from: config.owner});
+    await config.flightSuretyApp.registerFlight(flightName,statusCode,updatedTimestamp,airline, {from: config.owner});
 
-    let isRegistered = await config.flightSuretyApp.isFlightRegistered(flightCode);
+    let isRegistered = await config.flightSuretyApp.isFlightRegistered(airline, flightName, updatedTimestamp);
 
     assert.equal(isRegistered, true, "Flight registration went wrong");
 
@@ -228,12 +228,14 @@ contract('Flight Surety Tests', async (accounts) => {
 
     // Timestamp calculation
     let passenger = config.testAddresses[5];
-    flightCode = web3.utils.hexToBytes('0x000000ea');
+    flightName = 'MAD1984';
+    timestamp = 125;
+    airline = config.firstAirline;
 
-    console.log("-> Passenger " + passenger + "is buying insurance for flight: " + web3.utils.bytesToHex(flightCode));
+    console.log("-> Passenger " + passenger + "is buying insurance for flight: " + flightName + " of airline: " + airline + " and timestamp: " + timestamp);
 
     // Passenger buys insurance for one of the registered flights
-    await config.flightSuretyApp.buy(flightCode, {from: passenger, value: web3.utils.toWei('1', 'ether')});
+    await config.flightSuretyApp.buy(flightName,timestamp,airline, {from: passenger, value: web3.utils.toWei('1', 'ether')});
 
 
     assert.equal(true, true, "Flight insurance purchase failed");
@@ -244,13 +246,14 @@ contract('Flight Surety Tests', async (accounts) => {
 
     // Timestamp calculation
     let passenger = config.testAddresses[5];
-    flightCode = web3.utils.hexToBytes('0x000000ea');
+    flightName = 'MAD1984';
+    timestamp = 125;
 
-    console.log("-> Passenger " + passenger + " is claiming insurance for flight: " + web3.utils.bytesToHex(flightCode));
+    console.log("-> Passenger " + passenger + " is claiming insurance for flight: " + flightName + " with timestamp " + timestamp);
 
     // Passenger buys insurance for one of the registered flights
-    await config.flightSuretyApp.creditInsurees(passenger,flightCode);
-    let credit = await config.flightSuretyData.getInsureeCredit(passenger,flightCode)
+    await config.flightSuretyApp.creditInsurees(passenger,flightName,timestamp);
+    let credit = await config.flightSuretyData.getInsureeCredit(passenger,flightName,timestamp)
     console.log("-> Passenger credit for " + passenger + " is " + credit);
 
     // Initial check of passenger and data contract balances
@@ -260,8 +263,8 @@ contract('Flight Surety Tests', async (accounts) => {
     console.log("-> Data Contract balance before withdrawal: ",  web3.utils.fromWei(contractBalance, "ether"));
 
     // Passenger withdrawal through app contract
-    // await config.flightSuretyData.pay(flightCode,{from: passenger});
-    await config.flightSuretyApp.pay(flightCode,{from: passenger});
+    // await config.flightSuretyData.pay(flightName,{from: passenger});
+    await config.flightSuretyApp.pay(flightName,timestamp,{from: passenger});
 
     let passengerBalance2 = await web3.eth.getBalance(passenger);
     console.log("-> Passenger balance after withdrawal: ",  web3.utils.fromWei(passengerBalance2, "ether"));

@@ -16,6 +16,13 @@ import './flightsurety.css';
             display('Operational Status', 'Check if contract is operational', [ { label: 'Operational Status', error: error, value: result} ]);
         });
     
+        // Flight selection
+        let flights = [{id: 'Flightid',name:'flightName',timestamp:100}];
+        flights.forEach((flight, key) => {
+            console.log(flight,key);
+            DOM.elid('flight-selection').appendChild(DOM.option(({id: key}, flight.name + " - " + flight.timestamp)));
+        });
+
 
         // User-submitted transaction
         DOM.elid('submit-oracle').addEventListener('click', () => {
@@ -26,9 +33,9 @@ import './flightsurety.css';
             });
         })
 
-        contract.registerFlight( (error, result) => {
+/*         contract.registerFlight( (error, result) => {
             display('Flight Registration', 'Flight Registration', [ { label: 'Flight Registration', error: error, result} ]);
-        });
+        }); */
 
 
         // Purchase insurance for flight

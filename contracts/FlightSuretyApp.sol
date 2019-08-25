@@ -141,13 +141,15 @@ contract FlightSuretyApp {
     }
 
     function isFlightRegistered(
-                            bytes32 flightCode
+                            address airline,
+                            string flightName,
+                            uint256 timestamp
                             )
                             external
                             view
                             returns(bool)
     {
-        return flightSuretyData.isFlightRegistered(flightCode);
+        return flightSuretyData.isFlightRegistered(airline, flightName, timestamp);
     }
 
 // UTILITIES end ------
@@ -228,7 +230,7 @@ contract FlightSuretyApp {
     */
     function registerFlight
                                 (
-                                    bytes32 flightCode,
+                                    string flightName,
                                     uint8 statusCode,
                                     uint256 updatedTimestamp,
                                     address airline
@@ -236,7 +238,7 @@ contract FlightSuretyApp {
                                 external
                                 requireIsOperational
     {
-        flightSuretyData.registerFlight(flightCode,statusCode,updatedTimestamp,airline);
+        flightSuretyData.registerFlight(flightName,statusCode,updatedTimestamp,airline);
     }
 
    /**
@@ -285,37 +287,43 @@ contract FlightSuretyApp {
 
     function buy
                             (
-                                bytes32 flightCode
+                                string flightName,
+                                uint256 timestamp,
+                                address airline
                             )
                             external
                             payable
                             requireIsOperational
     {
-        require(this.isFlightRegistered(flightCode), "The flightCode provided is not registered");
+        require(this.isFlightRegistered(airline,flightName,timestamp), "The flightCode provided is not registered");
         require(msg.value <= MAX_INSURANCE_PRICE, "Max payable amount is 1 ether");
-        flightSuretyData.buy.value(msg.value)(msg.sender,flightCode);
+        flightSuretyData.buy.value(msg.value)(msg.sender,flightName,timestamp,airline);
     }
 
     function creditInsurees
                                 (
                                     address insuree,
-                                    bytes32 flightCode
+                                    string flightName,
+                                    uint256 timestamp,
+                                    address airline
                                 )
                                 external
                                 requireIsOperational
                                 
     {
-        flightSuretyData.creditInsurees(insuree,flightCode);
+        flightSuretyData.creditInsurees(insuree,flightName,timestamp,airline);
     }
 
     function pay
                             (
-                                bytes32 flightCode
+                                    string flightName,
+                                    uint256 timestamp,
+                                    address airline
                             )
                             external
                             requireIsOperational
     {
-        flightSuretyData.pay(msg.sender,flightCode);
+        flightSuretyData.pay(msg.sender,flightName,timestamp,airline);
     }
 // PASSENGER HANDLING ends ------
 
@@ -529,14 +537,16 @@ contract FlightSuretyData { // modifiers are implemented in the data contract
                             view
                             returns(uint256);
     function registerFlight  (
-                                bytes32 flightCode,
+                                string flightName,
                                 uint8 statusCode,
                                 uint256 updatedTimestamp,
                                 address airline
                             )
                             external;
     function isFlightRegistered(
-                            bytes32 flightCode
+                            address airline,
+                            string flightName,
+                            uint256 timestamp
                             )
                             external
                             view
@@ -544,20 +554,26 @@ contract FlightSuretyData { // modifiers are implemented in the data contract
     function buy
                             (
                                 address buyer,
-                                bytes32 flightCode
+                                string flightName,
+                                uint256 timestamp,
+                                address airline
                             )
                             external
                             payable;
     function creditInsurees
                             (
-                                address insuree,
-                                bytes32 flightCode
+                                    address insuree,
+                                    string flightName,
+                                    uint256 timestamp,
+                                    address airline
                             )
                             external;
     function pay
                             (
                                 address insuree,
-                                bytes32 flightCode
+                                string flightName,
+                                uint256 timestamp,
+                                address airline
                             )
                             external;
 }

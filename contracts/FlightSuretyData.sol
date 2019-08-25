@@ -198,25 +198,29 @@ contract FlightSuretyData {
     }
 
     function isFlightRegistered(
-                            bytes32 flightCode
+                            address airline,
+                            string flightName,
+                            uint256 timestamp
                             )
                             external
                             view
                             returns(bool)
     {
+        bytes32 flightCode = getFlightKey(airline, flightName, timestamp);
         return flights[flightCode].isRegistered;
     }
 
     function getInsureeCredit(
                             address insuree,
-                            bytes32 flightCode
+                            string flightName,
+                            uint256 timestamp
                             )
                             external
                             view
                             returns(uint256)
     {
-        bytes32 insuranceKey = keccak256(abi.encodePacked(insuree, flightCode));
-        return insuranceAssetWallet[insuranceKey];
+        bytes32 flightCode = getFlightKey(insuree, flightName, timestamp);
+        return insuranceAssetWallet[flightCode];
     }
 
 // UTILITIES end ------
@@ -282,7 +286,7 @@ contract FlightSuretyData {
     */  
     function registerFlight
                                 (
-                                    bytes32 flightCode,
+                                    string flightName,
                                     uint8 statusCode,
                                     uint256 updatedTimestamp,
                                     address airline
@@ -291,6 +295,9 @@ contract FlightSuretyData {
                                 requireIsOperational
                                 requireIsCallerAuthorized
     {
+
+        bytes32 flightCode = getFlightKey(airline, flightName, updatedTimestamp);
+        require(!flights[flightCode].isRegistered, "Flight already registered");
         flights[flightCode] = Flight({
                                         isRegistered: true,
                                         statusCode:statusCode,
@@ -299,6 +306,7 @@ contract FlightSuretyData {
 
                                     });
     }
+
 
     function getFlightKey
                         (
@@ -316,21 +324,24 @@ contract FlightSuretyData {
 
 // PASSENGER HANDLING starts ------
    /**
-    * @dev Buy insurance for a flight: Passenger buys insurance based on flight code.
+    * @dev Buy insurance for a flight: Passenger buys insurance based on flight name and timestamp.
     *
     */
     function buy
                             (
                                 address buyer,
-                                bytes32 flightCode
+                                string flightName,
+                                uint256 timestamp,
+                                address airline
                             )
                             external
                             payable
                             requireIsOperational
                             requireIsCallerAuthorized
     {
-        bytes32 insuranceKey = keccak256(abi.encodePacked(buyer, flightCode));
-        insuranceAssetWallet[insuranceKey] = msg.value;
+        bytes32 flightCode = getFlightKey(airline, flightName, timestamp);
+        require(flights[flightCode].isRegistered, "Flight does not exist");
+        insuranceAssetWallet[flightCode] = msg.value;
     }
 
     /**
@@ -339,16 +350,18 @@ contract FlightSuretyData {
     function creditInsurees
                                 (
                                     address insuree,
-                                    bytes32 flightCode
+                                    string flightName,
+                                    uint256 timestamp,
+                                    address airline
                                 )
                                 external
                                 requireIsOperational
                                 requireIsCallerAuthorized
     
     {
-        bytes32 insuranceKey = keccak256(abi.encodePacked(insuree, flightCode));
-        uint256 creditedAmount = insuranceAssetWallet[insuranceKey].mul(15).div(10);
-        insuranceAssetWallet[insuranceKey] = creditedAmount;
+        bytes32 flightCode = getFlightKey(airline, flightName, timestamp);
+        uint256 creditedAmount = insuranceAssetWallet[flightCode].mul(15).div(10);
+        insuranceAssetWallet[flightCode] = creditedAmount;
     }
     
     /**
@@ -358,20 +371,22 @@ contract FlightSuretyData {
     function pay
                             (
                                 address insuree,
-                                bytes32 flightCode
+                                string flightName,
+                                uint256 timestamp,
+                                address airline
                             )
                             external
                             
     {
-        bytes32 insuranceKey = keccak256(abi.encodePacked(insuree, flightCode));
-        uint256 creditedAmount = insuranceAssetWallet[insuranceKey];
+        bytes32 flightCode = getFlightKey(airline, flightName, timestamp);
+        uint256 creditedAmount = insuranceAssetWallet[flightCode];
         // Checks
         require(creditedAmount >= 0, "Passenger doesn´t have credit");
         // Effects
-        insuranceAssetWallet[insuranceKey] = 0; // Debit
+        insuranceAssetWallet[flightCode] = 0; // Debit
         // Interaction
         insuree.transfer(creditedAmount); // Credit
-        delete insuranceAssetWallet[insuranceKey]; //removes the asset
+        delete insuranceAssetWallet[flightCode]; //removes the asset
     }
 
 // PASSENGER HANDLING ends ------
