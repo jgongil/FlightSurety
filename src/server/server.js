@@ -17,7 +17,8 @@ STATUS_CODE_LATE_AIRLINE = 20;
 STATUS_CODE_LATE_WEATHER = 30;
 STATUS_CODE_LATE_TECHNICAL = 40;
 STATUS_CODE_LATE_OTHER = 50; */
-const ORACLES_COUNT = 5;
+
+const ORACLES_COUNT = 20;
 const STATUS_CODES = [0, 10, 20, 30, 40, 50];
 let nresp = 0; // number of successful responses
 
@@ -26,20 +27,24 @@ web3.eth.getAccounts(async (error, acc) => {
   // Register oracles at server startup
   await initOracleRegistration();
   
-  //Listening to Oracle Requests
-  await flightSuretyApp.events.OracleRequest({
-    fromBlock: 0
-  }, oracleRequestHandler); // OracleRequestHandler is triggered
+  /* Listening to EVENTS */
 
-  flightSuretyApp.events.OracleReport({
-    fromBlock: 0
+  // Listening to Oracle Requests
+  await flightSuretyApp.events.OracleRequest({
+    fromBlock: 'latest'
+  }, oracleRequestHandler); // -> OracleRequestHandler is triggered
+
+  // Listening to Oracle Reports
+  await flightSuretyApp.events.OracleReport({
+    fromBlock: 'latest'
   }, function (error, event) {
     if (error) console.log(error)
     console.log("Oracle report event received: ", event)
   });
 
-  flightSuretyApp.events.FlightStatusInfo({
-    fromBlock: 0
+  // Listening to FlightStatusInfo
+  await flightSuretyApp.events.FlightStatusInfo({
+    fromBlock: 'latest'
   }, function (error, event) {
     if (error) console.log(error)
     console.log("Flight Status Info event received: ", event)
@@ -58,7 +63,7 @@ app.get('/api', (req, res) => {
 
 async function initOracleRegistration() {
 
-  // Based on Oracle test cases, starting with the registration of oracles
+  // Based on Oracle test cases, starting with the registration of ORACLES_COUNT oracles
   let fee = await flightSuretyApp.methods.REGISTRATION_FEE().call();
   for(let a=1; a<ORACLES_COUNT; a++) {      
     await flightSuretyApp.methods.registerOracle().send({ from: accounts[a], value: fee, gas: 3000000 });

@@ -1,4 +1,5 @@
 pragma solidity ^0.4.25;
+pragma experimental ABIEncoderV2;
 
 import "../node_modules/openzeppelin-solidity/contracts/math/SafeMath.sol";
 
@@ -36,15 +37,28 @@ contract FlightSuretyData {
         uint8 statusCode;
         uint256 updatedTimestamp;
         address airline;
+        string flightName;
     }
     mapping(bytes32 => Flight) private flights;
+    bytes32[] private flightCodes = new bytes32[](0); // Will store flight codes to enable iteration over flights
 
     // Flight insurance assets wallet: (Flight+Passenger) -> assetId -> balance
     mapping(bytes32 => uint256) insuranceAssetWallet;
 
+    struct Insurance {
+        bytes32 flightCode;
+        uint256 value;
+    }
+    mapping(address => Insurance[]) private passengerInsurances; // Passenger -> Insurances
+    mapping(address => uint256) private payouts;
+    mapping(bytes32 => address[]) private flightInsurees; // Flight -> Passengers who bought insurance
+
     /********************************************************************************************/
     /*                                       EVENT DEFINITIONS                                  */
     /********************************************************************************************/
+
+    event debug(uint i);
+
     /**
     * @dev Constructor
     *      The deploying account becomes contractOwner
@@ -96,7 +110,7 @@ contract FlightSuretyData {
 
     modifier requireIsCallerAuthorized()
     {
-        require(authorizedContracts[msg.sender] == 1, "Caller is not contract owner");
+        require(authorizedContracts[msg.sender] == 1, "Caller is not authorized");
         _;
     }
 
@@ -211,16 +225,81 @@ contract FlightSuretyData {
     }
 
     function getInsureeCredit(
-                            address insuree,
-                            string flightName,
-                            uint256 timestamp
+                            address insuree
                             )
                             external
                             view
                             returns(uint256)
     {
-        bytes32 flightCode = getFlightKey(insuree, flightName, timestamp);
-        return insuranceAssetWallet[flightCode];
+        return payouts[insuree];
+    }
+
+    // Returns insured flights for a passenger or insuree
+    function getInsuredFlights(
+                            address insureeAddress
+                            )
+                            external
+                            view
+                            returns(string[] memory,uint256[] memory,address[] memory)
+    {
+        uint256 ninsurances = passengerInsurances[insureeAddress].length;
+        string[] memory flightNames = new string[](ninsurances);
+        uint256[] memory timestamps = new uint256[](ninsurances);
+        address[] memory airlines = new address[](ninsurances);
+
+            for (uint i = 0; i < ninsurances; ++i) {
+                bytes32 flightCode = passengerInsurances[insureeAddress][i].flightCode;
+                flightNames[i] = flights[flightCode].flightName;
+                timestamps[i] = flights[flightCode].updatedTimestamp;
+                airlines[i] = flights[flightCode].airline;
+            }
+
+        return (flightNames,timestamps,airlines);
+    }
+
+    function isInsured    (
+                            address insuree,
+                            address airline,
+                            string flightName,
+                            uint256 timestamp
+                            )
+                            external
+                            view
+                            returns(bool)
+    {
+        bytes32 flightCode = getFlightKey(airline, flightName, timestamp);
+        address[] memory listOfInsurees = flightInsurees[flightCode];// Retrieves insurees of a flight
+        uint ninsurees = listOfInsurees.length;
+        bool insured = false;
+
+        for (uint i = 0; i < ninsurees; ++i) { // Does any of the insurees matches?
+            if (insuree == listOfInsurees[i]){
+                insured = true;
+            }
+        }
+
+        return insured;
+    }
+
+    function getRegisteredFlights()
+                                    external
+                                    view
+                                    returns(string[] memory,uint256[] memory,address[] memory)
+    {
+
+        uint256 ncodes = flightCodes.length;
+        string[] memory flightNames = new string[](ncodes);
+        uint256[] memory timestamps = new uint256[](ncodes);
+        address[] memory airlines = new address[](ncodes);
+
+            for (uint i = 0; i < ncodes; ++i) {
+                bytes32 flightCode = flightCodes[i];
+                flightNames[i] = flights[flightCode].flightName;
+                timestamps[i] = flights[flightCode].updatedTimestamp;
+                airlines[i] = flights[flightCode].airline;
+            }
+
+        return (flightNames,timestamps,airlines);
     }
 
 // UTILITIES end ------
@@ -293,7 +372,7 @@ contract FlightSuretyData {
                                 )
                                 external
                                 requireIsOperational
-                                requireIsCallerAuthorized
+                                //requireIsCallerAuthorized
     {
 
         bytes32 flightCode = getFlightKey(airline, flightName, updatedTimestamp);
@@ -302,9 +381,11 @@ contract FlightSuretyData {
                                         isRegistered: true,
                                         statusCode:statusCode,
                                         updatedTimestamp:updatedTimestamp,
-                                        airline: airline
+                                        airline: airline,
+                                        flightName: flightName
 
                                     });
+        flightCodes.push(flightCode); // adding the new code to a list for further iteration over all flights
     }
 
 
@@ -330,9 +411,9 @@ contract FlightSuretyData {
     function buy
                             (
                                 address buyer,
+                                address airline,
                                 string flightName,
-                                uint256 timestamp,
-                                address airline
+                                uint256 timestamp
                             )
                             external
                             payable
@@ -341,7 +422,21 @@ contract FlightSuretyData {
     {
         bytes32 flightCode = getFlightKey(airline, flightName, timestamp);
         require(flights[flightCode].isRegistered, "Flight does not exist");
-        insuranceAssetWallet[flightCode] = msg.value;
+
+        //  mapping(address => Insurance[]) private insurances;
+        // Insurance policy definition
+        Insurance memory newInsurance = Insurance({
+                                        flightCode:flightCode,
+                                        value: msg.value
+                                    });
+        Insurance[] storage currentInsurances = passengerInsurances[buyer];
+        currentInsurances.push(newInsurance); // We add the new insurance to the list of insurances of the user
+        passengerInsurances[buyer] = currentInsurances;
+
+        address[] storage listOfInsurees = flightInsurees[flightCode];
+        listOfInsurees.push(buyer); // We add the insuree to the list of passengers insured by flightCode
+        flightInsurees[flightCode] = listOfInsurees;
+
     }
 
     /**
@@ -350,9 +445,9 @@ contract FlightSuretyData {
     function creditInsurees
                                 (
                                     address insuree,
+                                    address airline,
                                     string flightName,
-                                    uint256 timestamp,
-                                    address airline
+                                    uint256 timestamp
                                 )
                                 external
                                 requireIsOperational
@@ -360,8 +455,20 @@ contract FlightSuretyData {
     
     {
         bytes32 flightCode = getFlightKey(airline, flightName, timestamp);
-        uint256 creditedAmount = insuranceAssetWallet[flightCode].mul(15).div(10);
-        insuranceAssetWallet[flightCode] = creditedAmount;
+        // address[] memory insureesToCredit = flightInsurees(flightCode); // If I´d like to credit all insurees affected by a flight
+
+        // Retrieves insuree insurances
+        Insurance[] memory currentInsurances = passengerInsurances[insuree];
+        uint256 creditedAmount = 0;
+
+        for (uint i = 0; i < currentInsurances.length; ++i) { // Checks every insurance
+            if (currentInsurances[i].flightCode == flightCode){
+                creditedAmount = creditedAmount.add(currentInsurances[i].value.mul(15).div(10)); // For the insurance of the relevant flight it will add a credit for payout
+            }
+        }
+        // The credited amount for the relevant flight will be added to the total payout of the insuree
+        payouts[insuree] = payouts[insuree].add(creditedAmount); 
+
     }
     
     /**
@@ -370,23 +477,20 @@ contract FlightSuretyData {
     */
     function pay
                             (
-                                address insuree,
-                                string flightName,
-                                uint256 timestamp,
-                                address airline
+                                address insuree
                             )
                             external
                             
     {
-        bytes32 flightCode = getFlightKey(airline, flightName, timestamp);
-        uint256 creditedAmount = insuranceAssetWallet[flightCode];
+
+        uint256 creditedAmount = payouts[insuree];
         // Checks
         require(creditedAmount >= 0, "Passenger doesn´t have credit");
         // Effects
-        insuranceAssetWallet[flightCode] = 0; // Debit
+        payouts[insuree] = 0; // Debit
         // Interaction
         insuree.transfer(creditedAmount); // Credit
-        delete insuranceAssetWallet[flightCode]; //removes the asset
+        delete payouts[insuree]; //removes the asset
     }
 
 // PASSENGER HANDLING ends ------

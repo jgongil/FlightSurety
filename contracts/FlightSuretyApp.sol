@@ -1,4 +1,5 @@
 pragma solidity ^0.4.25;
+pragma experimental ABIEncoderV2;
 
 // It's important to avoid vulnerabilities due to numeric overflow bugs
 // OpenZeppelin's SafeMath library, when used correctly, protects agains such bugs
@@ -152,6 +153,36 @@ contract FlightSuretyApp {
         return flightSuretyData.isFlightRegistered(airline, flightName, timestamp);
     }
 
+    function getRegisteredFlights()
+                                    external
+                                    view
+                                    returns(string[] memory,uint256[] memory,address[] memory)
+    {
+        return flightSuretyData.getRegisteredFlights();
+    }
+    function getInsuredFlights(
+                                address insureeAddress
+                                )
+                        external
+                        view
+                        returns(string[] memory,uint256[] memory,address[] memory)
+    {
+        return flightSuretyData.getInsuredFlights(insureeAddress);
+    }
+
+    function isInsured    (
+                    address insuree,
+                    address airline,
+                    string flightName,
+                    uint256 timestamp
+                    )
+                    external
+                    view
+                    returns(bool)
+    {
+        return flightSuretyData.isInsured(insuree,airline,flightName,timestamp);
+    }
+
 // UTILITIES end ------
 
     /********************************************************************************************/
@@ -287,9 +318,9 @@ contract FlightSuretyApp {
 
     function buy
                             (
+                                address airline,
                                 string flightName,
-                                uint256 timestamp,
-                                address airline
+                                uint256 timestamp
                             )
                             external
                             payable
@@ -297,33 +328,31 @@ contract FlightSuretyApp {
     {
         require(this.isFlightRegistered(airline,flightName,timestamp), "The flightCode provided is not registered");
         require(msg.value <= MAX_INSURANCE_PRICE, "Max payable amount is 1 ether");
-        flightSuretyData.buy.value(msg.value)(msg.sender,flightName,timestamp,airline);
+        require(!this.isInsured(msg.sender,airline,flightName,timestamp),"The passenger already bought and insurance for this flight");
+        flightSuretyData.buy.value(msg.value)(msg.sender,airline,flightName,timestamp);
     }
 
     function creditInsurees
                                 (
                                     address insuree,
+                                    address airline,
                                     string flightName,
-                                    uint256 timestamp,
-                                    address airline
+                                    uint256 timestamp
                                 )
                                 external
                                 requireIsOperational
                                 
     {
-        flightSuretyData.creditInsurees(insuree,flightName,timestamp,airline);
+        flightSuretyData.creditInsurees(insuree,airline,flightName,timestamp);
     }
 
     function pay
                             (
-                                    string flightName,
-                                    uint256 timestamp,
-                                    address airline
                             )
                             external
                             requireIsOperational
     {
-        flightSuretyData.pay(msg.sender,flightName,timestamp,airline);
+        flightSuretyData.pay(msg.sender);
     }
 // PASSENGER HANDLING ends ------
 
@@ -554,27 +583,46 @@ contract FlightSuretyData { // modifiers are implemented in the data contract
     function buy
                             (
                                 address buyer,
+                                address airline,
                                 string flightName,
-                                uint256 timestamp,
-                                address airline
+                                uint256 timestamp
                             )
                             external
                             payable;
     function creditInsurees
                             (
                                     address insuree,
+                                    address airline,
                                     string flightName,
-                                    uint256 timestamp,
-                                    address airline
+                                    uint256 timestamp
                             )
                             external;
     function pay
                             (
-                                address insuree,
-                                string flightName,
-                                uint256 timestamp,
-                                address airline
+                                address insuree
                             )
                             external;
+
+    function getRegisteredFlights()
+                                    external
+                                    view
+                                    returns(string[] memory,uint256[] memory,address[] memory);
+    function getInsuredFlights(
+                            address insureeAddress
+                            )
+                            external
+                            view
+                            returns(string[] memory,uint256[] memory,address[] memory);
+    function isInsured    (
+                        address insuree,
+                        address airline,
+                        string flightName,
+                        uint256 timestamp
+                        )
+                        external
+                        view
+                        returns(bool);
+
 }
+
 // FlightSuretyData INTERFACE ends ------

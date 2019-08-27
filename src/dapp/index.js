@@ -10,19 +10,43 @@ import './flightsurety.css';
 
     let contract = new Contract('localhost', () => {
 
-        // Read transaction
+        // Read Operational Status
         contract.isOperational((error, result) => {
-            console.log(error,result);
+            console.log(error,"Operational status of the contrac: " + result);
             display('Operational Status', 'Check if contract is operational', [ { label: 'Operational Status', error: error, value: result} ]);
         });
-    
-        // Flight selection
-        let flights = [{id: 'Flightid',name:'flightName',timestamp:100}];
-        flights.forEach((flight, key) => {
-            console.log(flight,key);
-            DOM.elid('flight-selection').appendChild(DOM.option(({id: key}, flight.name + " - " + flight.timestamp)));
+
+        // Reads All registered flights
+        contract.getRegisteredFlights((error, result) => {
+
+            console.log(result[0].length);
+
+            let availableFlights = [];
+            for (let i = 0; i < result[0].length; ++i) {
+                        let iFlight = {
+                                        flightName: result[0][i],
+                                        timestamp: result[1][i],
+                                        airline: result[2][i]
+                                    };
+                availableFlights.push(iFlight);
+            }
+            console.log(availableFlights);
+
+            availableFlights.forEach((availableFlights, key) => {
+                DOM.elid('flight-selection').appendChild(DOM.option({id: key}, availableFlights.flightName + " - " + availableFlights.timestamp));
+            });
         });
 
+        // Purchase submission
+        DOM.elid('submit-purchase').addEventListener('click', () => {
+            let flight = DOM.elid('flight-number').value;
+            let timestamp = 123;
+            let amount = DOM.elid('amount-paid').value;
+            console.log("Buying Insurance for Flight: ", flight);
+            contract.buy(flight,timestamp,amount, (error, result) => {
+                display('Purchase', 'New Insurance', [ { label: 'Insurance', error: error, value: result.flight + ' ' + result.timestamp} ]);
+            });
+        })
 
         // User-submitted transaction
         DOM.elid('submit-oracle').addEventListener('click', () => {
@@ -32,22 +56,6 @@ import './flightsurety.css';
                 display('Oracles', 'Trigger oracles', [ { label: 'Fetch Flight Status', error: error, value: result.flight + ' ' + result.timestamp} ]);
             });
         })
-
-/*         contract.registerFlight( (error, result) => {
-            display('Flight Registration', 'Flight Registration', [ { label: 'Flight Registration', error: error, result} ]);
-        }); */
-
-
-        // Purchase insurance for flight
-        DOM.elid('purchase-insurance').addEventListener('click', () => {
-            let flight = DOM.elid('flight-number-inssured').value;
-            // Write transaction
-            contract.buy(flight, (error, result) => {
-                display('Buy', 'Purchase Insurance for flight', [ { label: 'Purchase flight insurance', error: error, value: result} ]);
-            });
-        })
-
-        
     
     });
     
@@ -69,10 +77,3 @@ function display(title, description, results) {
     displayDiv.append(section);
 
 }
-
-
-
-
-
-
-

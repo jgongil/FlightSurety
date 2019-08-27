@@ -220,51 +220,62 @@ contract('Flight Surety Tests', async (accounts) => {
 
     let isRegistered = await config.flightSuretyApp.isFlightRegistered(airline, flightName, updatedTimestamp);
 
+    await config.flightSuretyApp.getRegisteredFlights((err,res) =>{
+      if (err) console.log(err)
+      console.log("Flights Registered: ", res);
+    });
+
     assert.equal(isRegistered, true, "Flight registration went wrong");
 
   });
 
   it('(passenger) A passenger can buy an insurance for one of the registered flights', async () => {
 
-    // Timestamp calculation
+    // Parameters of the previously registered flight
     let passenger = config.testAddresses[5];
     flightName = 'MAD1984';
     timestamp = 125;
     airline = config.firstAirline;
+    let insured = false;
 
     console.log("-> Passenger " + passenger + "is buying insurance for flight: " + flightName + " of airline: " + airline + " and timestamp: " + timestamp);
 
     // Passenger buys insurance for one of the registered flights
-    await config.flightSuretyApp.buy(flightName,timestamp,airline, {from: passenger, value: web3.utils.toWei('1', 'ether')});
-
-
-    assert.equal(true, true, "Flight insurance purchase failed");
+    await config.flightSuretyApp.buy(airline,flightName,timestamp, {from: passenger, value: web3.utils.toWei('1', 'ether')});
+    insured = await config.flightSuretyApp.isInsured(passenger,airline,flightName,timestamp);
+    assert.equal(insured, true, "Flight insurance purchase failed");
 
   });
 
   it('(passenger) A passenger can claim the insurance for one of the registered flights', async () => {
 
-    // Timestamp calculation
+    // Parameters of the previously registered flight
     let passenger = config.testAddresses[5];
     flightName = 'MAD1984';
     timestamp = 125;
+    airline = config.firstAirline;
 
     console.log("-> Passenger " + passenger + " is claiming insurance for flight: " + flightName + " with timestamp " + timestamp);
 
-    // Passenger buys insurance for one of the registered flights
-    await config.flightSuretyApp.creditInsurees(passenger,flightName,timestamp);
-    let credit = await config.flightSuretyData.getInsureeCredit(passenger,flightName,timestamp)
+    // Retrives insured flights for the passenger
+    await config.flightSuretyData.getInsuredFlights(passenger,(err,res) => {
+      if (err) console.log(err);
+      console.log("Insured flights: ", res);
+    });
+
+    // Credits passenger for specific flight
+    await config.flightSuretyApp.creditInsurees(passenger,airline,flightName,timestamp);
+    let credit = await config.flightSuretyData.getInsureeCredit(passenger)
     console.log("-> Passenger credit for " + passenger + " is " + credit);
 
     // Initial check of passenger and data contract balances
     let passengerBalance1 = await web3.eth.getBalance(passenger);
     console.log("-> Passenger balance before withdrawal: ",  web3.utils.fromWei(passengerBalance1, "ether"));
-    let contractBalance = await web3.eth.getBalance(config.flightSuretyData.address);
-    console.log("-> Data Contract balance before withdrawal: ",  web3.utils.fromWei(contractBalance, "ether"));
+    let contractBalance1 = await web3.eth.getBalance(config.flightSuretyData.address);
+    console.log("-> Data Contract balance before withdrawal: ",  web3.utils.fromWei(contractBalance1, "ether"));
 
     // Passenger withdrawal through app contract
-    // await config.flightSuretyData.pay(flightName,{from: passenger});
-    await config.flightSuretyApp.pay(flightName,timestamp,{from: passenger});
+    await config.flightSuretyApp.pay({from: passenger});
 
     let passengerBalance2 = await web3.eth.getBalance(passenger);
     console.log("-> Passenger balance after withdrawal: ",  web3.utils.fromWei(passengerBalance2, "ether"));
