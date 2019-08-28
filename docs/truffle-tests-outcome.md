@@ -3,6 +3,7 @@
 ## Environment
 
 ```
+
 $ ganache-cli --version
 Ganache CLI v6.5.0 (ganache-core: 2.6.0)
 
@@ -36,6 +37,9 @@ flightsurety@1.0.0
 +-- webpack-dev-server@3.7.2
 `-- webpack-node-externals@1.7.2
 
+`-- truffle@5.0.2
+  `-- solc@0.5.0
+  
 ```
 ## Results
 ![](./images/tests1.png)
