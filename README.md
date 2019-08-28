@@ -33,7 +33,7 @@ Please notice scripts in package.json were updated to avoid conflicts in Windows
 ```
 To run the tests you might use:  `npm run truf test`
 
-Result of tests can be found [here](./docs/truffle-tests.outcome.md)
+Result of tests can be found [here](./docs/truffle-tests-outcome.md)
 
 To use the dapp:
 
