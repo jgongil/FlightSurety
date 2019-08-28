@@ -11,6 +11,8 @@ To install, download or clone the repo, then:
 `npm install`
 `truffle compile`
 
+Please note the tests were run using `Ganache CLI v6.5.0 (ganache-core: 2.6.0)`
+
 ## Develop Client
 
 To run ganache-cli:
@@ -21,6 +23,17 @@ To run truffle tests:
 
 `truffle test ./test/flightSurety.js`
 `truffle test ./test/oracles.js`
+
+Please notice scripts in package.json were updated to avoid conflicts in Windows between truffle.js and truffle.cmd.
+
+``` 
+"scripts": {
+    "truf": "truffle.cmd",
+    "test": "truffle.cmd test ./test/flightSurety.js"
+```
+To run the tests you might use:  `npm run truf test`
+
+Result of tests can be found [here](./docs/truffle-tests.outcome.md)
 
 To use the dapp:
 
