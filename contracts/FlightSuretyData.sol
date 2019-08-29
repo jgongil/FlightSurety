@@ -28,10 +28,6 @@ contract FlightSuretyData {
     //Airline funded balance
     mapping(address => uint256) internal airlineFunds;
 
-    // Fees for airlines to join
-    uint256 public constant JOIN_FEE = 10 ether;
-
-
     struct Flight {
         bool isRegistered;
         uint8 statusCode;
@@ -322,7 +318,6 @@ contract FlightSuretyData {
                             requireIsOperational
                             requireIsCallerAuthorized
     {
-        require(!airlineProfiles[wallet].isRegistered, "Airline is already registered.");
 
         // adds airline address to the list of registered airline addresses
         registeredAirlines.push(wallet);
@@ -347,14 +342,10 @@ contract FlightSuretyData {
                             requireIsOperational
                             requireIsCallerAuthorized
     {
-        require(airlineProfiles[airline].isRegistered, "Airline is not registered so cannot be funded"); // The airline must be registered already as first step
 
         airlineFunds[airline] = airlineFunds[airline].add(msg.value); // Keep record of contributions of every company
+        airlineProfiles[airline].isFunded = true;
 
-        // mark airline as funded if it is not, and the value reaches the JOIN_FEE
-        if ((airlineFunds[airline] >= JOIN_FEE) && !airlineProfiles[airline].isFunded){
-            airlineProfiles[airline].isFunded = true;
-        }
     }
 // AIRLINE HANDLING ends ------
 
@@ -376,7 +367,7 @@ contract FlightSuretyData {
     {
 
         bytes32 flightCode = getFlightKey(airline, flightName, updatedTimestamp);
-        require(!flights[flightCode].isRegistered, "Flight already registered");
+        // require(!flights[flightCode].isRegistered, "Flight already registered"); -> checked in app contract
         flights[flightCode] = Flight({
                                         isRegistered: true,
                                         statusCode:statusCode,

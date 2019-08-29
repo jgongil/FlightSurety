@@ -39,6 +39,12 @@ contract FlightSuretyApp {
     mapping(address => address[]) private airlineVotes;
     address[] airlineProRegister = new address[](0);
 
+    // Fees for airlines to join
+    uint256 public constant JOIN_FEE = 10 ether; 
+
+    // EVENTS
+    event flightStatusProcessed(address airline, string flight, uint256 timestamp, uint8 statusCode);
+
     /********************************************************************************************/
     /*                                       FUNCTION MODIFIERS                                 */
     /********************************************************************************************/
@@ -54,7 +60,7 @@ contract FlightSuretyApp {
     modifier requireIsOperational() 
     {
          // Modify to call data contract's status
-        require(true, "Contract is currently not operational");  
+        require(operational, "Contract is currently not operational");  
         _;  // All modifiers require an "_" which indicates where the function body will be added
     }
 
@@ -202,8 +208,8 @@ contract FlightSuretyApp {
                             external
                             returns(bool success, uint256 votes)
     {
-        //require(this.isAirlineRegistered(msg.sender), "A non-registered airline cannot register");
         require(this.isAirlineFunded(msg.sender), "A non-funded airline cannot register");
+        require(!this.isAirlineRegistered(airlineToRegister), "The airline is already registered");
 
         // Registered airlines counts
         uint256 airlinesCount = flightSuretyData.countAirlinesRegistered(); // Numer of registered airlines
@@ -249,6 +255,12 @@ contract FlightSuretyApp {
         address(dataContractAddress).transfer(JOIN_FEE);
         msg.sender.transfer(amountToReturn); */
 
+        // The airline must be registered already as first step
+        require(this.isAirlineRegistered(msg.sender), "Airline is not registered so cannot be funded");
+        // Check if it´s already funded
+        require(!this.isAirlineFunded(msg.sender), "Airline is already funded");
+        // Transaction has the minimun joining fee
+        require(msg.value >= JOIN_FEE,"The transaction value doesn´t meet the joining fee");
         flightSuretyData.fundAirline.value(msg.value)(msg.sender);
     }
 
@@ -269,6 +281,7 @@ contract FlightSuretyApp {
                                 external
                                 requireIsOperational
     {
+        require(!this.isFlightRegistered(airline,flightName,updatedTimestamp), "The flight is already registered");
         flightSuretyData.registerFlight(flightName,statusCode,updatedTimestamp,airline);
     }
 
@@ -284,9 +297,9 @@ contract FlightSuretyApp {
                                     uint8 statusCode
                                 )
                                 internal
-                                pure
                                 requireIsOperational
     {
+        emit flightStatusProcessed(airline, flight, timestamp, statusCode);
     }
 
 
