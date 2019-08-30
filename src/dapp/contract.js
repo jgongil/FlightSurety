@@ -17,6 +17,7 @@ export default class Contract {
         this.config = config;
     }
 
+    // CONTRACT INIZIALIZATION STARTS -------------------------------
     initialize(callback) {
         this.web3.eth.getAccounts((error, accts) => {
            
@@ -50,6 +51,9 @@ export default class Contract {
             callback();
         });
     }
+    // CONTRACT INIZIALIZATION ENDS -------------------------------
+
+    // CONTRACT FUNCTIONS DECLARATION starts -------------------------------
 
     isOperational(callback) {
        let self = this;
@@ -58,12 +62,12 @@ export default class Contract {
             .call({ from: self.owner}, callback);
     }
 
-    fetchFlightStatus(flight, callback) {
+    fetchFlightStatus(airline,flight,timestamp, callback) {
         let self = this;
         let payload = {
-            airline: self.airlines[0],
+            airline: airline,
             flight: flight,
-            timestamp: Math.floor(Date.now() / 1000)
+            timestamp: timestamp
         } 
         self.flightSuretyApp.methods
             .fetchFlightStatus(payload.airline, payload.flight, payload.timestamp)
@@ -109,19 +113,36 @@ export default class Contract {
              .call({ from: self.owner},callback);
     }
 
-    async buy(flightName, timestamp, amount, callback) {
+    async buy(airline, flightName, timestamp, amount, callback) {
         let self = this;
         let payload = {
-            airline: self.airlines[3],
+            airline: airline,
             flight: flightName,
             timestamp: timestamp,
             amount: amount
             }
         await self.flightSuretyApp.methods
              .buy(payload.airline,payload.flight,payload.timestamp)
-             .send({from: self.owner,value: payload.amount, gas: 4712388, gasPrice: 100000000000}, (error, result) => {
+             .send({from: self.owner,value: self.web3.utils.toWei(payload.amount, 'ether'), gas: 4712388, gasPrice: 100000000000}, (error, result) => {
                 callback(error,payload);
+                console.log("purchase result: " + result);
             });
     }
+
+/*         async eventsListener(callback){
+            let self = this;
+            // Listening to FlightStatusInfo
+            await self.flightSuretyApp.events.soldInsurance({
+                fromBlock: 'latest'
+            }, function (error, event) {
+                if (error) console.log(error)
+                console.log("soldInsurance Info event received: ", event);
+                callback(error,event);
+            });
+        } */
+
+    
+
+
 
 }

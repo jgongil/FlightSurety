@@ -44,7 +44,9 @@ contract FlightSuretyApp {
 
     // EVENTS
     event flightStatusProcessed(address airline, string flight, uint256 timestamp, uint8 statusCode);
-
+    event soldInsurance(address airline,string flightName,uint256 timestamp);
+    event lateArrival(address airline,string flightName,uint256 timestamp);
+    
     /********************************************************************************************/
     /*                                       FUNCTION MODIFIERS                                 */
     /********************************************************************************************/
@@ -299,6 +301,16 @@ contract FlightSuretyApp {
                                 internal
                                 requireIsOperational
     {
+        require(this.isFlightRegistered(airline,flight,timestamp), "The flightCode provided is not registered");
+
+        if (statusCode==STATUS_CODE_LATE_AIRLINE){ // With late arrival we can automatically credit the passengers
+
+            emit lateArrival(airline, flight, timestamp);
+            address[] memory listToCredit = this.getInsurees(airline,flight,timestamp);
+            for (uint i = 0; i < listToCredit.length; ++i) {
+                this.creditInsurees(listToCredit[i], airline,flight,timestamp);
+            }
+        }
         emit flightStatusProcessed(airline, flight, timestamp, statusCode);
     }
 
@@ -341,8 +353,11 @@ contract FlightSuretyApp {
     {
         require(this.isFlightRegistered(airline,flightName,timestamp), "The flightCode provided is not registered");
         require(msg.value <= MAX_INSURANCE_PRICE, "Max payable amount is 1 ether");
+        require(msg.value > 0, "No ether sent");
         require(!this.isInsured(msg.sender,airline,flightName,timestamp),"The passenger already bought and insurance for this flight");
         flightSuretyData.buy.value(msg.value)(msg.sender,airline,flightName,timestamp);
+
+        emit soldInsurance(airline,flightName,timestamp);
     }
 
     function creditInsurees
@@ -356,6 +371,8 @@ contract FlightSuretyApp {
                                 requireIsOperational
                                 
     {
+        require(this.isFlightRegistered(airline,flightName,timestamp), "The flightCode provided is not registered");
+        require(this.isInsured(insuree,airline,flightName,timestamp),"The passenger is not insured for this flight");
         flightSuretyData.creditInsurees(insuree,airline,flightName,timestamp);
     }
 
@@ -365,7 +382,21 @@ contract FlightSuretyApp {
                             external
                             requireIsOperational
     {
+        require(flightSuretyData.getInsureeCredit(msg.sender) > 0, "Passenger doesn´t have any payout credit");
         flightSuretyData.pay(msg.sender);
+    }
+
+    function getInsurees    (
+                                address airline,
+                                string flightName,
+                                uint256 timestamp
+                            )
+                            external
+                            view
+                            returns(address[] memory)
+    {
+        require(this.isFlightRegistered(airline,flightName,timestamp), "The flightCode provided is not registered");
+        return flightSuretyData.getInsurees(airline,flightName,timestamp);
     }
 // PASSENGER HANDLING ends ------
 
@@ -635,6 +666,20 @@ contract FlightSuretyData { // modifiers are implemented in the data contract
                         external
                         view
                         returns(bool);
+    function getInsureeCredit(
+                            address insuree
+                            )
+                            external
+                            view
+                            returns(uint256);
+    function getInsurees    (
+                                address airline,
+                                string flightName,
+                                uint256 timestamp
+                            )
+                            external
+                            view
+                            returns(address[] memory);
 
 }
 

@@ -298,6 +298,20 @@ contract FlightSuretyData {
         return (flightNames,timestamps,airlines);
     }
 
+    function getInsurees    (
+                                address airline,
+                                string flightName,
+                                uint256 timestamp
+                            )
+                            external
+                            view
+                            returns(address[] memory)
+    {
+        bytes32 flightCode = getFlightKey(airline, flightName, timestamp);
+        address[] memory listOfInsurees = flightInsurees[flightCode];// Retrieves insurees of a flight
+        return listOfInsurees;
+    }
+
 // UTILITIES end ------
 
     /********************************************************************************************/
@@ -412,7 +426,6 @@ contract FlightSuretyData {
                             requireIsCallerAuthorized
     {
         bytes32 flightCode = getFlightKey(airline, flightName, timestamp);
-        require(flights[flightCode].isRegistered, "Flight does not exist");
 
         //  mapping(address => Insurance[]) private insurances;
         // Insurance policy definition
@@ -475,8 +488,7 @@ contract FlightSuretyData {
     {
 
         uint256 creditedAmount = payouts[insuree];
-        // Checks
-        require(creditedAmount >= 0, "Passenger doesn´t have credit");
+        // Checks -> Credit checked in app contract
         // Effects
         payouts[insuree] = 0; // Debit
         // Interaction

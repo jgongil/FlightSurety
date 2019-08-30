@@ -16,10 +16,23 @@ import './flightsurety.css';
             display('Operational Status', 'Check if contract is operational', [ { label: 'Operational Status', error: error, value: result} ]);
         });
 
-        // Reads All registered flights
+        // Oracle fetch flight status
+        DOM.elid('submit-oracle').addEventListener('click', () => {
+            let flightDetails = DOM.elid('flight-status-selection').value;
+            flightDetails = flightDetails.split(",");
+            let flightName = flightDetails[0];
+            let flightTimestamp = flightDetails[1];
+            let flightAirline = flightDetails[2];
+            // Write transaction
+            contract.fetchFlightStatus(flightAirline,flightName,flightTimestamp, (error, result) => {
+                display('Oracles', 'Trigger oracles', [ { label: 'Fetch Flight Status', error: error, value: result.flight + ' ' + result.timestamp} ]);
+            });
+        })
+
+        // Reads all registered flights to make them available in the dropdow list
         contract.getRegisteredFlights((error, result) => {
 
-            console.log(result[0].length);
+            console.log("Number of flights registered: ",result[0].length);
 
             let availableFlights = [];
             for (let i = 0; i < result[0].length; ++i) {
@@ -31,41 +44,59 @@ import './flightsurety.css';
                 availableFlights.push(iFlight);
             }
             console.log(availableFlights);
-
-            availableFlights.forEach((availableFlights, key) => {
-                DOM.elid('flight-selection').appendChild(DOM.option({id: key}, availableFlights.flightName + " - " + availableFlights.timestamp));
-            });
+            populateForm(availableFlights);
         });
 
         // Purchase submission
         DOM.elid('submit-purchase').addEventListener('click', () => {
-            let flight = DOM.elid('flight-number').value;
-            let timestamp = 123;
+            let flightDetails = DOM.elid('flight-selection').value;
             let amount = DOM.elid('amount-paid').value;
-            console.log("Buying Insurance for Flight: ", flight);
-            contract.buy(flight,timestamp,amount, (error, result) => {
-                display('Purchase', 'New Insurance', [ { label: 'Insurance', error: error, value: result.flight + ' ' + result.timestamp} ]);
+            flightDetails = flightDetails.split(",");
+            let flightName = flightDetails[0];
+            let flightTimestamp = flightDetails[1];
+            let flightAirline = flightDetails[2];
+            console.log("Buying Insurance from airline " + flightAirline + " for flight: " + flightName + " with timestamp: " + flightTimestamp + " with value " + amount);
+            contract.buy(flightAirline, flightName, flightTimestamp, amount, (error, result) => {
+                display('Purchase', 'New Insurance', [ { label: 'New insurance successfully purchased: ', error: error, value: result.flight + ' ' + result.timestamp  + ' ' + result.airline} ]);
             });
-        })
+        });
 
-        // User-submitted transaction
-        DOM.elid('submit-oracle').addEventListener('click', () => {
-            let flight = DOM.elid('flight-number').value;
-            // Write transaction
-            contract.fetchFlightStatus(flight, (error, result) => {
-                display('Oracles', 'Trigger oracles', [ { label: 'Fetch Flight Status', error: error, value: result.flight + ' ' + result.timestamp} ]);
-            });
-        })
-    
+/*         // Listening to events
+        contract.eventsListener((error, result) => {
+            console.log(error,"Operational status of the contrac: " + result);
+            display('Events', 'Event Received', [ { label: 'Event', error: error, value: result} ]);
+        }); */
+
+        
+
     });
     
 
 })();
 
 
+
+// Populates the dropdown list of available flights
+function populateForm(availableFlights) {
+    let selectf = DOM.elid("flight-selection");
+    availableFlights.forEach((availableFlight, key) => {
+        console.log(availableFlight, key);
+       let optionf = DOM.option();
+        DOM.appendText(optionf,Object.values(availableFlight));
+        selectf.appendChild(optionf);  
+    });
+    let selects = DOM.elid("flight-status-selection");
+    availableFlights.forEach((availableFlight, key) => {
+        console.log(availableFlight, key);
+       let options = DOM.option();
+        DOM.appendText(options,Object.values(availableFlight));
+        selects.appendChild(options);
+    });
+}
+
 function display(title, description, results) {
-    let displayDiv = DOM.elid("display-wrapper");
-    let section = DOM.section();
+    let displayDiv = DOM.elid("display-wrapper"); // main container
+    let section = DOM.section(); // section
     section.appendChild(DOM.h2(title));
     section.appendChild(DOM.h5(description));
     results.map((result) => {
@@ -77,3 +108,6 @@ function display(title, description, results) {
     displayDiv.append(section);
 
 }
+
+
+

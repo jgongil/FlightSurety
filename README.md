@@ -17,7 +17,7 @@ Please note the tests were run using `Ganache CLI v6.5.0 (ganache-core: 2.6.0)`
 
 To run ganache-cli:
 
-`ganache-cli -m "candy maple cake sugar pudding cream honey rich smooth crumble sweet treat" -l 9999999 -e 500`
+`ganache-cli -m "candy maple cake sugar pudding cream honey rich smooth crumble sweet treat" -l 9999999 -e 500 -a 25`
 
 To run truffle tests:
 
@@ -37,8 +37,14 @@ Result of tests can be found [here](./docs/truffle-tests-outcome.md)
 
 To use the dapp:
 
-`truffle migrate`
+`truffle migrate` or `npm run truf migrate --reset`
 `npm run dapp`
+
+Notice:
+- It´s recommended to open the browser console to see what´s happening in the backgroud
+- When starting dapp:
+    - App contract gets authorized to operate on data contract.
+    - Two flights get automatically registered when starting the dapp.
 
 To view dapp:
 
@@ -48,6 +54,7 @@ To view dapp:
 
 `npm run server`
 `truffle test ./test/oracles.js`
+To start the server for dapp testing make sure you have migrated your contracts and that you have more than 20 accounts unlocked for the oracles (see ganache-cli command above)
 
 ## Deploy
 
